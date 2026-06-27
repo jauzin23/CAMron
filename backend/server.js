@@ -12,31 +12,39 @@
 require("dotenv").config();
 
 const express = require("express");
-const http    = require("http");  // built-in, no npm install needed
-const cors    = require("cors");
+const http = require("http");
+const cors = require("cors");
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Config ───────────────────────────────────────────────────
 const CAMERA_BEARER_TOKEN = process.env.CAMERA_BEARER_TOKEN;
-if (!CAMERA_BEARER_TOKEN || CAMERA_BEARER_TOKEN === "REPLACE_WITH_YOUR_SECRET_TOKEN") {
-  console.error("ERROR: CAMERA_BEARER_TOKEN is not set in .env -- refusing to start.");
+if (
+  !CAMERA_BEARER_TOKEN ||
+  CAMERA_BEARER_TOKEN === "REPLACE_WITH_YOUR_SECRET_TOKEN"
+) {
+  console.error(
+    "ERROR: CAMERA_BEARER_TOKEN is not set in .env -- refusing to start.",
+  );
   process.exit(1);
 }
 
-// In-memory camera registry  { id → { ip, registeredAt } }
 const cameras = {};
-const STREAM_PORT = 81; // must match STREAM_PORT in config.h
+const STREAM_PORT = process.env.TEST_STREAM_PORT
+  ? parseInt(process.env.TEST_STREAM_PORT)
+  : 81;
 
-// ── Middleware ───────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
 
-// ── Auth helper ──────────────────────────────────────────────
 function verifyBearer(req, res) {
   const authHeader = req.headers["authorization"] || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  let token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
+
   if (!token || token !== CAMERA_BEARER_TOKEN) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
@@ -59,13 +67,39 @@ app.post("/api/camera/register", (req, res) => {
   res.json({ ok: true, message: `Camera '${id}' registered at ${ip}` });
 });
 
+const activeStreams = {};
+
+function cleanupStream(camId) {
+  const streamInfo = activeStreams[camId];
+  if (!streamInfo) return;
+
+  console.log(`Cleaning up stream connection for camera: ${camId}`);
+  if (streamInfo.camReq) {
+    try {
+      streamInfo.camReq.destroy();
+    } catch (e) {
+      console.error(`Error destroying camera request for ${camId}:`, e.message);
+    }
+  }
+
+  for (const clientRes of streamInfo.clients) {
+    try {
+      if (!clientRes.writableEnded) {
+        clientRes.end();
+      }
+    } catch (e) {
+      console.error(`Error closing client connection for ${camId}:`, e.message);
+    }
+  }
+  delete activeStreams[camId];
+}
+
 // ── GET /stream ───────────────────────────────────────────────
-// Proxies the MJPEG stream from the camera.
+// Proxies the MJPEG stream from the camera (multiplexed).
 // Requires: Authorization: Bearer <token>
 app.get("/stream", (req, res) => {
   if (!verifyBearer(req, res)) return;
 
-  // For now we use a single camera.  Later: support ?id=cam2 etc.
   const camId = req.query.id || Object.keys(cameras)[0];
   if (!camId || !cameras[camId]) {
     return res.status(503).json({
@@ -74,54 +108,135 @@ app.get("/stream", (req, res) => {
   }
 
   const cam = cameras[camId];
-  console.log(`Proxying stream from ${cam.ip}:${STREAM_PORT}`);
+
+  if (activeStreams[camId]) {
+    const streamInfo = activeStreams[camId];
+    streamInfo.clients.add(res);
+    console.log(
+      `Client added to existing stream for camera ${camId}. Active clients: ${streamInfo.clients.size}`,
+    );
+
+    if (streamInfo.headers) {
+      res.writeHead(streamInfo.statusCode || 200, streamInfo.headers);
+    }
+
+    req.on("close", () => {
+      console.log(`Client disconnected from camera stream ${camId}`);
+      if (activeStreams[camId]) {
+        activeStreams[camId].clients.delete(res);
+        console.log(
+          `Active clients for camera ${camId}: ${activeStreams[camId].clients.size}`,
+        );
+        if (activeStreams[camId].clients.size === 0) {
+          cleanupStream(camId);
+        }
+      }
+    });
+    return;
+  }
+
+  console.log(
+    `Creating new camera stream connection for ${camId} at ${cam.ip}:${STREAM_PORT}`,
+  );
+  const streamInfo = {
+    camReq: null,
+    camRes: null,
+    statusCode: null,
+    headers: null,
+    clients: new Set([res]),
+  };
+  activeStreams[camId] = streamInfo;
 
   const options = {
     hostname: cam.ip,
-    port:     STREAM_PORT,
-    path:     "/stream",
-    method:   "GET",
+    port: STREAM_PORT,
+    path: "/stream",
+    method: "GET",
     headers: {
       Authorization: `Bearer ${CAMERA_BEARER_TOKEN}`,
     },
-    // Low timeout — if camera is gone, fail fast
     timeout: 5000,
   };
 
   const camReq = http.request(options, (camRes) => {
-    // Pass the camera's headers straight through so the browser
-    // gets the correct multipart MIME type and boundaries.
-    res.writeHead(camRes.statusCode, camRes.headers);
-    camRes.pipe(res);
+    streamInfo.camRes = camRes;
+    streamInfo.statusCode = camRes.statusCode;
+    streamInfo.headers = camRes.headers;
+
+    console.log(
+      `Camera connection established for ${camId} with status ${camRes.statusCode}`,
+    );
+
+    for (const clientRes of streamInfo.clients) {
+      if (!clientRes.headersSent) {
+        clientRes.writeHead(camRes.statusCode, camRes.headers);
+      }
+    }
+
+    camRes.on("data", (chunk) => {
+      for (const clientRes of streamInfo.clients) {
+        try {
+          clientRes.write(chunk);
+        } catch (err) {
+          console.error(
+            `Error writing to client for camera ${camId}:`,
+            err.message,
+          );
+        }
+      }
+    });
+
+    camRes.on("end", () => {
+      console.log(`Camera stream ended by camera for ${camId}`);
+      cleanupStream(camId);
+    });
 
     camRes.on("error", (err) => {
-      console.error("Camera stream error:", err.message);
-      res.end();
+      console.error(
+        `Camera stream connection error for ${camId}:`,
+        err.message,
+      );
+      cleanupStream(camId);
     });
   });
 
   camReq.on("timeout", () => {
-    console.error(`Camera ${cam.ip} timed out`);
-    camReq.destroy();
-    if (!res.headersSent) {
-      res.status(504).json({ error: "Camera timed out" });
+    console.error(`Camera request timed out for ${camId}`);
+    for (const clientRes of streamInfo.clients) {
+      if (!clientRes.headersSent) {
+        clientRes.status(504).json({ error: "Camera timed out" });
+      }
     }
+    cleanupStream(camId);
   });
 
   camReq.on("error", (err) => {
-    console.error("Camera request error:", err.message);
-    if (!res.headersSent) {
-      res.status(502).json({ error: "Could not reach camera: " + err.message });
+    console.error(`Camera request error for ${camId}:`, err.message);
+    for (const clientRes of streamInfo.clients) {
+      if (!clientRes.headersSent) {
+        clientRes
+          .status(502)
+          .json({ error: "Could not reach camera: " + err.message });
+      }
+    }
+    cleanupStream(camId);
+  });
+
+  streamInfo.camReq = camReq;
+  camReq.end();
+
+  req.on("close", () => {
+    console.log(`Client disconnected from camera stream ${camId}`);
+    if (activeStreams[camId]) {
+      activeStreams[camId].clients.delete(res);
+      console.log(
+        `Active clients for camera ${camId}: ${activeStreams[camId].clients.size}`,
+      );
+      if (activeStreams[camId].clients.size === 0) {
+        cleanupStream(camId);
+      }
     }
   });
-
-  // If the client disconnects (closed browser tab), kill the camera request too
-  req.on("close", () => {
-    console.log("Client disconnected — closing camera stream");
-    camReq.destroy();
-  });
-
-  camReq.end();
 });
 
 // ── GET /viewer ───────────────────────────────────────────────
@@ -254,14 +369,18 @@ app.get("/api/cameras", (req, res) => {
   res.json(cameras);
 });
 
-// ── GET /health ───────────────────────────────────────────────
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
-// ── Start ─────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\nCAMron backend listening on http://localhost:${PORT}`);
   console.log(`   Viewer   -> http://localhost:${PORT}/viewer`);
-  console.log(`   Stream   -> http://localhost:${PORT}/stream  (bearer required)`);
-  console.log(`   Register -> POST http://localhost:${PORT}/api/camera/register`);
-  console.log(`   Token    -> ${CAMERA_BEARER_TOKEN.slice(0, 6)}...[redacted]\n`);
+  console.log(
+    `   Stream   -> http://localhost:${PORT}/stream  (bearer required)`,
+  );
+  console.log(
+    `   Register -> POST http://localhost:${PORT}/api/camera/register`,
+  );
+  console.log(
+    `   Token    -> ${CAMERA_BEARER_TOKEN.slice(0, 6)}...[redacted]\n`,
+  );
 });
