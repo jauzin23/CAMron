@@ -1,5 +1,5 @@
 // =============================================================
-// CAMron — Main Arduino sketch for ESP32-CAM (AI-Thinker / OV2640)
+// CAMron - Main Arduino sketch for ESP32-CAM (AI-Thinker / OV2640)
 //
 // What this does:
 //   1. Connects to WiFi
@@ -56,7 +56,7 @@ static void registerWithBackend() {
     Serial.println(http.getString());
   } else {
     Serial.printf("Backend POST failed: %s\n", http.errorToString(code).c_str());
-    Serial.println("Will retry in loop — stream server will still start.");
+    Serial.println("Will retry in loop - stream server will still start.");
   }
   http.end();
 }
@@ -135,7 +135,7 @@ void setup() {
     delay(500);
     Serial.print(".");
     if (++attempts > 40) {
-      Serial.println("\nWiFi timeout — rebooting");
+      Serial.println("\nWiFi timeout - rebooting");
       ESP.restart();
     }
   }
@@ -149,7 +149,7 @@ void setup() {
 
   // Upgrade resolution now that cam_task has been running stably at QVGA
   // for the entire WiFi connection duration. The DMA ring is settled.
-  // Also apply flip/mirror here — safe to do now, sensor is fully stable.
+  // Also apply flip/mirror here - safe to do now, sensor is fully stable.
   s->set_framesize(s, FRAMESIZE_SVGA);
   s->set_vflip(s, 1);
   s->set_hmirror(s, 1);
@@ -160,7 +160,7 @@ void setup() {
 
   Serial.printf("\nStream running at http://%s:%d/stream\n",
                 WiFi.localIP().toString().c_str(), STREAM_PORT);
-  Serial.println("Access it ONLY via the backend proxy — direct access requires bearer token.");
+  Serial.println("Access it ONLY via the backend proxy - direct access requires bearer token.");
 }
 
 // ── loop() ───────────────────────────────────────────────────

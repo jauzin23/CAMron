@@ -1,5 +1,5 @@
 // =============================================================
-// CAMron — Stripped MJPEG stream server for ESP32-CAM (AI-Thinker)
+// CAMron - Stripped MJPEG stream server for ESP32-CAM (AI-Thinker)
 // Only serves /stream on STREAM_PORT, protected by bearer token.
 // All other requests → 401 Unauthorized.
 // =============================================================
@@ -49,7 +49,7 @@ static esp_err_t send_401(httpd_req_t *req) {
 
 // ── Stream handler ────────────────────────────────────────────
 static esp_err_t stream_handler(httpd_req_t *req) {
-  // ❶ Auth gate — first thing, no exceptions
+  // ❶ Auth gate - first thing, no exceptions
   if (!check_bearer(req)) {
     return send_401(req);
   }
@@ -64,7 +64,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
   res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
   if (res != ESP_OK) return res;
 
-  // Don't expose camera to cross-origin — intentionally omit CORS wildcard
+  // Don't expose camera to cross-origin - intentionally omit CORS wildcard
   // (backend proxy is the only legitimate caller)
 
   while (true) {
@@ -121,7 +121,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
   return res;
 }
 
-// ── Catch-all handler — rejects everything that isn't /stream ─
+// ── Catch-all handler - rejects everything that isn't /stream ─
 // Registered as a wildcard URI so stray requests get 401, not 404.
 static esp_err_t reject_handler(httpd_req_t *req) {
   return send_401(req);
@@ -153,7 +153,7 @@ void startCameraServer() {
   if (httpd_start(&stream_httpd, &config) == ESP_OK) {
     httpd_register_uri_handler(stream_httpd, &stream_uri);
     httpd_register_uri_handler(stream_httpd, &reject_uri);
-    log_i("Stream server started — /stream is bearer-protected");
+    log_i("Stream server started - /stream is bearer-protected");
   } else {
     log_e("Failed to start stream server!");
   }
