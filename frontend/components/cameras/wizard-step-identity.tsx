@@ -45,7 +45,9 @@ export function WizardStepIdentity({
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <Label htmlFor="camera-name" className="text-sm font-medium">
-          Nome da câmara <span className="text-rose-500">*</span>
+          <span>
+            Nome da câmara:<span className="text-rose-500 ml-0.5">*</span>
+          </span>
         </Label>
         <Input
           id="camera-name"
@@ -60,9 +62,7 @@ export function WizardStepIdentity({
           autoComplete="off"
           className="h-10"
         />
-        {error && (
-          <p className="text-xs text-rose-500 mt-0.5">{error}</p>
-        )}
+        {error && <p className="text-xs text-rose-500 mt-0.5">{error}</p>}
       </div>
 
       <div className="flex justify-end pt-2">

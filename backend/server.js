@@ -17,6 +17,9 @@ const cors = require("cors");
 const { initSchema } = require("./db/schema");
 const camerasRouter = require("./routes/cameras");
 const streamRouter = require("./routes/stream");
+const flashRouter = require("./routes/flash");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,12 +39,25 @@ if (
 // ── Boot DB ──────────────────────────────────────────────────────────────────
 initSchema();
 
+// ── Cleanup Temp Compile Directories on Startup ──────────────────────────────
+const tempDirRoot = path.join(__dirname, "temp");
+if (fs.existsSync(tempDirRoot)) {
+  try {
+    fs.rmSync(tempDirRoot, { recursive: true, force: true });
+    console.log("[server] Cleaned up old temp directories on startup.");
+  } catch (err) {
+    console.error("[server] Failed to clean up temp directory on startup:", err);
+  }
+}
+fs.mkdirSync(tempDirRoot, { recursive: true });
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/cameras", camerasRouter);
+app.use("/api", flashRouter);
 app.use("/stream", streamRouter);
 
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));

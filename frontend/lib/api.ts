@@ -18,6 +18,8 @@ export type Camera = {
   flash_active: boolean;
   created_at: string;
   updated_at: string;
+  wifi_ssid?: string | null;
+  wifi_pass?: string | null;
 };
 
 export async function getCameras(): Promise<Camera[]> {

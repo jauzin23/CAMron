@@ -3,8 +3,9 @@
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
-interface Step {
+export interface Step {
   label: string;
+  skipped?: boolean;
 }
 
 interface CameraWizardProps {
@@ -30,14 +31,16 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
                 <div
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all duration-300",
-                    isDone
+                    step.skipped
+                      ? "border-border bg-muted text-muted-foreground"
+                      : isDone
                       ? "border-primary bg-primary text-primary-foreground"
                       : isActive
                       ? "border-primary bg-background text-primary shadow-[0_0_0_4px] shadow-primary/15"
                       : "border-border bg-background text-muted-foreground"
                   )}
                 >
-                  {isDone ? (
+                  {isDone && !step.skipped ? (
                     <Check className="h-3.5 w-3.5 stroke-[3]" />
                   ) : (
                     <span>{i + 1}</span>
@@ -62,7 +65,7 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
                 <div
                   className={cn(
                     "mx-3 mb-5 h-px flex-1 min-w-[40px] transition-colors duration-300",
-                    isDone ? "bg-primary" : "bg-border"
+                    isDone && !step.skipped ? "bg-primary" : "bg-border"
                   )}
                 />
               )}

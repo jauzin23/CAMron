@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/page-header";
 import { AuroraText } from "@/components/ui/aurora-text";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,11 +45,14 @@ function formatDateTime(value: string) {
 }
 
 // Derive online/offline status from last_seen timestamp
-function getCameraStatus(camera: Camera): "online" | "offline" {
+function getCameraStatus(
+  camera: Camera,
+): "online" | "offline" | "unconfigured" {
+  if (!camera.wifi_ssid) return "unconfigured";
   if (!camera.last_seen) return "offline";
   const diffSeconds =
     (Date.now() - new Date(camera.last_seen).getTime()) / 1000;
-  return diffSeconds < 60 ? "online" : "offline";
+  return diffSeconds < 10 ? "online" : "offline";
 }
 
 export default function ControlCenterPage() {
@@ -69,20 +73,36 @@ export default function ControlCenterPage() {
   }, []);
 
   // Load cameras from API
-  const loadCameras = useCallback(async () => {
-    setCamerasLoading(true);
+  const loadCameras = useCallback(async (showLoading = true) => {
+    if (showLoading) setCamerasLoading(true);
     try {
       const data = await getCameras();
       setCameras(data);
     } catch (err) {
-      toast.error("Erro ao carregar câmaras. O backend está a correr?");
+      if (showLoading) toast.error("Erro ao carregar câmaras. O backend está a correr?");
     } finally {
-      setCamerasLoading(false);
+      if (showLoading) setCamerasLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadCameras();
+    void loadCameras(true);
+
+    // Refresh status when the tab gets focused
+    const handleFocus = () => {
+      void loadCameras(false);
+    };
+    window.addEventListener("focus", handleFocus);
+
+    // Poll every 5 seconds to keep camera status up to date
+    const interval = setInterval(() => {
+      void loadCameras(false);
+    }, 5000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
   }, [loadCameras]);
 
   const handleCopyIP = (ip: string, name: string) => {
@@ -100,21 +120,34 @@ export default function ControlCenterPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
+    // Optimistic update
+    setCameras((prev) => prev.filter((c) => c.id !== id));
+    
     try {
       await deleteCamera(id);
       toast.success(`Câmara "${name}" eliminada.`);
-      void loadCameras();
+      void loadCameras(false);
     } catch {
       toast.error("Erro ao eliminar câmara.");
+      void loadCameras(false);
     }
   };
 
   const handleToggleFlash = async (camera: Camera) => {
+    // Verdadeiro update otimista: muda a UI imediatamente antes do pedido
+    const previousState = camera.flash_active;
+    setCameras((prev) =>
+      prev.map((c) =>
+        c.id === camera.id ? { ...c, flash_active: !previousState } : c,
+      ),
+    );
+
     try {
       const result = await toggleFlash(camera.id);
       const label = result.flash_active ? "ligada" : "desligada";
       toast.success(`Lanterna de "${camera.name}" ${label}.`);
-      // Optimistic update
+      
+      // Garante que o estado reflete exatamente o que o backend retornou
       setCameras((prev) =>
         prev.map((c) =>
           c.id === camera.id ? { ...c, flash_active: result.flash_active } : c,
@@ -122,13 +155,19 @@ export default function ControlCenterPage() {
       );
     } catch {
       toast.error("Erro ao controlar a lanterna.");
+      // Reverte se houver erro
+      setCameras((prev) =>
+        prev.map((c) =>
+          c.id === camera.id ? { ...c, flash_active: previousState } : c,
+        ),
+      );
     }
   };
 
   const columns: ColumnDef<Camera>[] = [
     {
       accessorKey: "name",
-      header: "Câmara",
+      header: () => <div className="pl-2">Câmara</div>,
       cell: ({ row }) => {
         const camera = row.original;
         return (
@@ -145,6 +184,14 @@ export default function ControlCenterPage() {
       header: "Estado",
       cell: ({ row }) => {
         const status = getCameraStatus(row.original);
+        if (status === "unconfigured") {
+          return (
+            <div className="flex items-center gap-2">
+              <StatusDot variant="warning" size="md" />
+              <span className="font-semibold text-amber-500">Por gravar</span>
+            </div>
+          );
+        }
         const isOnline = status === "online";
         return (
           <div className="flex items-center gap-2">
@@ -178,24 +225,63 @@ export default function ControlCenterPage() {
       header: "Lanterna",
       cell: ({ row }) => {
         const camera = row.original;
+        const status = getCameraStatus(camera);
+        if (status === "unconfigured") {
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-zinc-950 transition-colors shadow-xs cursor-pointer px-2"
+              onClick={() => router.push(`/cameras/flash?id=${camera.id}`)}
+            >
+              <Cpu className="h-3.5 w-3.5 mr-1" />
+              Gravar Firmware
+            </Button>
+          );
+        }
         const active = camera.flash_active;
         return (
           <button
             onClick={() => handleToggleFlash(camera)}
-            className="transition-opacity hover:opacity-70 active:opacity-50"
+            className="cursor-pointer overflow-hidden rounded-full active:scale-95 transition-transform"
             title="Clica para ligar/desligar"
           >
-            {active ? (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2 py-0.5 text-xs font-semibold text-yellow-500 select-none">
-                <Lightbulb className="h-3.5 w-3.5 fill-yellow-500" />
-                <span>Ligado</span>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-800 bg-zinc-950 px-2 py-0.5 text-xs font-semibold text-zinc-500 select-none">
-                <LightbulbOff className="h-3.5 w-3.5" />
-                <span>Desligado</span>
-              </div>
-            )}
+            <div
+              className={cn(
+                "relative inline-flex items-center justify-center w-[92px] h-[22px] rounded-full border text-xs font-semibold select-none transition-all duration-300",
+                active 
+                  ? "border-zinc-200/30 bg-zinc-200/15 text-zinc-100 shadow-[0_0_8px_rgba(228,228,231,0.15)]" 
+                  : "border-zinc-800 bg-zinc-950 text-zinc-500 shadow-none"
+              )}
+            >
+              <AnimatePresence mode="popLayout" initial={false}>
+                {active ? (
+                  <motion.div
+                    key="on"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <Lightbulb className="h-3.5 w-3.5 fill-current -mt-[1px]" />
+                    <span className="leading-none mt-[1px]">Ligado</span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="off"
+                    initial={{ opacity: 0, y: -15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 15 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <LightbulbOff className="h-3.5 w-3.5 -mt-[1px]" />
+                    <span className="leading-none mt-[1px]">Desligado</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </button>
         );
       },
@@ -232,7 +318,7 @@ export default function ControlCenterPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-48 bg-zinc-950 border border-border/80 text-zinc-200"
+                className="min-w-[8rem] bg-zinc-950 border border-border/80 text-zinc-200"
               >
                 <DropdownMenuItem
                   onClick={() => handleCopyID(camera.id, camera.name)}
@@ -246,9 +332,16 @@ export default function ControlCenterPage() {
                   className="cursor-pointer gap-2 font-mono text-xs focus:bg-zinc-900 focus:text-zinc-50"
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Copiar IP{camera.ip ? `: ${camera.ip}` : ""}</span>
+                  <span>Copiar IP</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-border/60" />
+                <DropdownMenuItem
+                  onClick={() => router.push(`/cameras/flash?id=${camera.id}`)}
+                  className="cursor-pointer gap-2 text-xs focus:bg-zinc-900"
+                >
+                  <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Gravar Firmware</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => router.push(`/cameras/edit?id=${camera.id}`)}
                   className="cursor-pointer gap-2 text-xs focus:bg-zinc-900"
@@ -302,7 +395,7 @@ export default function ControlCenterPage() {
                 variant="outline"
                 className="h-9 gap-2 font-medium border-zinc-800 hover:bg-zinc-900 text-zinc-300 cursor-pointer"
                 onClick={() => router.push("/cameras/flash")}
-                disabled={camerasLoading}
+                disabled={camerasLoading || cameras.length === 0}
               >
                 <Cpu className="h-4 w-4 text-primary" />
                 Gravar Firmware (USB)

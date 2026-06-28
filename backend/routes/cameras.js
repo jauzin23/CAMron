@@ -24,7 +24,7 @@ function now() {
  * Pings a camera's stream port (TCP 81) to see if it's reachable.
  * Returns true if connection succeeds, false on timeout/error.
  */
-function pingCamera(ip, port = 81, timeout = 300) {
+function pingCamera(ip, port = 81, timeout = 2000) {
   return new Promise((resolve) => {
     if (!ip) return resolve(false);
     const socket = new net.Socket();
@@ -53,29 +53,33 @@ function pingCamera(ip, port = 81, timeout = 300) {
   });
 }
 
+// Background polling: ping cameras every 5 seconds to update their last_seen status
+setInterval(() => {
+  try {
+    const cameras = db.prepare("SELECT id, ip FROM cameras WHERE ip IS NOT NULL AND ip != ''").all();
+    cameras.forEach(async (c) => {
+      const isOnline = await pingCamera(c.ip, 81, 2000);
+      if (isOnline) {
+        db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(now(), c.id);
+      }
+    });
+  } catch (err) {
+    console.error("[cameras background ping] Error:", err.message);
+  }
+}, 5000);
+
 // ── GET /api/cameras ─────────────────────────────────────────────────────────
-router.get("/", async (req, res) => {
+router.get("/", (req, res) => {
   try {
     const cameras = db
       .prepare("SELECT * FROM cameras ORDER BY created_at DESC")
       .all();
 
-    // Ping all cameras in parallel to determine live online status
-    const pingPromises = cameras.map(async (c) => {
-      const isOnline = await pingCamera(c.ip, 81, 300);
-      const ts = isOnline ? now() : null;
+    const result = cameras.map((c) => ({
+      ...c,
+      flash_active: c.flash_active === 1,
+    }));
 
-      // Update the DB last_seen status dynamically
-      db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(ts, c.id);
-
-      return {
-        ...c,
-        last_seen: ts,
-        flash_active: c.flash_active === 1,
-      };
-    });
-
-    const result = await Promise.all(pingPromises);
     res.json(result);
   } catch (err) {
     console.error("[cameras] GET /:", err.message);
@@ -199,6 +203,15 @@ router.post("/register", (req, res) => {
     db.prepare(
       "UPDATE cameras SET ip = ?, last_seen = ?, updated_at = ? WHERE id = ?",
     ).run(ip, now(), now(), id);
+
+    // Also insert into flash_history to satisfy the frontend confirmation polling!
+    try {
+      db.prepare(
+        "INSERT INTO flash_history (camera_id, success) VALUES (?, 1)",
+      ).run(id);
+    } catch (e) {
+      console.error("[cameras] Failed to insert flash history on register:", e.message);
+    }
 
     console.log(`[cameras] ESP32 register: id=${id} ip=${ip}`);
     res.json({ ok: true, message: `Camera '${id}' registered at ${ip}` });

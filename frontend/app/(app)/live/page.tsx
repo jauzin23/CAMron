@@ -318,7 +318,7 @@ export default function LivePage() {
         const mapped: Camera[] = dbCams.map((c, i) => ({
           id: `real-db-${c.id}`,
           dbId: c.id,
-          name: `${c.name}${c.ip ? ` · ${c.ip}` : ""}`,
+          name: c.name,
           type: "real" as const,
         }));
         setRealCameras(mapped);

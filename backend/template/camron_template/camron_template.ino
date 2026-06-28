@@ -1,16 +1,12 @@
 // =============================================================
-// CAMron - Main Arduino sketch for ESP32-CAM (AI-Thinker / OV2640)
-//
-// What this does:
-//   1. Connects to WiFi
-//   2. Initialises the OV2640 camera
-//   3. POSTs this camera's IP to the backend (handshake)
-//   4. Starts the bearer-protected MJPEG stream server on STREAM_PORT
+// CAMron - Main sketch for ESP32-CAM (AI-Thinker / OV2640)
+// Compiled via arduino-cli with the same toolchain as Arduino IDE
 // =============================================================
 
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <Preferences.h>
 #include "config.h"
 
 // ── AI-Thinker pin map ────────────────────────────────────────
@@ -40,7 +36,7 @@ void startCameraServer();
 static void registerWithBackend() {
   HTTPClient http;
 
-  String url = String("http://") + BACKEND_HOST + ":" + BACKEND_PORT + BACKEND_PATH;
+  String url = String("http://") + BACKEND_HOST + ":" + String(BACKEND_PORT) + BACKEND_PATH;
   http.begin(url);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", "Bearer " CAMERA_BEARER_TOKEN);
@@ -111,8 +107,6 @@ void setup() {
   config.fb_count     = 1;
 
   if (psramFound()) {
-    // Init with UXGA so PSRAM frame buffers are sized for the largest resolution.
-    // GRAB_LATEST + fb_count=2 is what the original working sketch used with PSRAM.
     config.jpeg_quality = 10;
     config.fb_count     = 2;
     config.grab_mode    = CAMERA_GRAB_LATEST;
@@ -132,11 +126,6 @@ void setup() {
   }
   Serial.println("Camera init OK");
 
-  // CRITICAL: immediately drop to QVGA so cam_task stabilizes on its first
-  // DMA run. Without this, the task overflows its stack trying to process a
-  // full UXGA frame before its ring buffer has settled. This is what the
-  // original working sketch did. We will upgrade the resolution after WiFi
-  // connects, before the HTTP server starts.
   sensor_t *s = esp_camera_sensor_get();
   s->set_framesize(s, FRAMESIZE_QVGA);
 
@@ -160,12 +149,39 @@ void setup() {
   Serial.print("Camera IP: ");
   Serial.println(WiFi.localIP());
 
+  // ── First Boot NVS Check & Confirmation ─────────────────────
+  Preferences preferences;
+  preferences.begin("camron", false);
+  String storedId = preferences.getString("camera_id", "");
+  bool firstBoot = (storedId != CAMERA_ID);
+  if (firstBoot) {
+    Serial.println("First boot detected! Sending confirmation to backend...");
+    HTTPClient http;
+    String confirmUrl = String("http://") + BACKEND_HOST + ":" + String(BACKEND_PORT) + "/api/confirm-flash";
+    http.begin(confirmUrl);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Authorization", "Bearer " CAMERA_BEARER_TOKEN);
+
+    String body = "{\"id\":\"" CAMERA_ID "\",\"status\":\"success\",\"message\":\"hey, my friend, it worked mf\"}";
+    int confirmCode = http.POST(body);
+    if (confirmCode > 0) {
+      Serial.printf("Confirm responded: %d\n", confirmCode);
+      if (confirmCode == 200 || confirmCode == 201) {
+        preferences.putString("camera_id", CAMERA_ID);
+        Serial.println("First boot confirmation successful. Stored camera_id in NVS.");
+      }
+    } else {
+      Serial.printf("Confirm failed: %s\n", http.errorToString(confirmCode).c_str());
+    }
+    http.end();
+  } else {
+    Serial.println("Not a first boot. Skipping NVS confirmation.");
+  }
+  preferences.end();
+
   // ── Handshake ───────────────────────────────────────────────
   registerWithBackend();
 
-  // Upgrade resolution now that cam_task has been running stably at QVGA
-  // for the entire WiFi connection duration. The DMA ring is settled.
-  // Also apply flip/mirror here - safe to do now, sensor is fully stable.
   s->set_framesize(s, FRAMESIZE_SVGA);
   s->set_vflip(s, 1);
   s->set_hmirror(s, 1);
@@ -176,14 +192,10 @@ void setup() {
 
   Serial.printf("\nStream running at http://%s:%d/stream\n",
                 WiFi.localIP().toString().c_str(), STREAM_PORT);
-  Serial.println("Access it ONLY via the backend proxy - direct access requires bearer token.");
 }
 
 // ── loop() ───────────────────────────────────────────────────
 void loop() {
-  // All work is done in the httpd task.
-  // Optionally: re-register with backend every 5 minutes
-  // in case our IP lease changes or the backend restarted.
   static unsigned long lastReg = 0;
   if (millis() - lastReg > 5UL * 60UL * 1000UL) {
     if (WiFi.status() == WL_CONNECTED) {

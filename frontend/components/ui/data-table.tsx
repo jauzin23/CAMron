@@ -10,6 +10,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import { AnimatePresence, motion } from "framer-motion"
 
 import {
   Table,
@@ -49,6 +50,7 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (row: any, index) => row.id || String(index),
     state: {
       columnFilters,
     },
@@ -80,7 +82,7 @@ export function DataTable<TData, TValue>({
       )}
 
       {/* Table Container */}
-      <div className="rounded-md border border-zinc-800 bg-zinc-950/50">
+      <div className="overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950/50 shadow-sm backdrop-blur-sm">
         <Table>
           <TableHeader className="bg-zinc-950 border-b border-zinc-800">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -103,7 +105,10 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {isLoading ? (
               Array.from({ length: 3 }).map((_, rowIndex) => (
-                <TableRow key={`skeleton-row-${rowIndex}`} className="hover:bg-transparent border-b border-zinc-900/60">
+                <TableRow
+                  key={`skeleton-row-${rowIndex}`}
+                  className="hover:bg-transparent border-b border-zinc-900/60"
+                >
                   {columns.map((column, colIndex) => {
                     const colId = column.id || (column as any).accessorKey;
                     return (
@@ -135,26 +140,34 @@ export function DataTable<TData, TValue>({
                   })}
                 </TableRow>
               ))
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="border-b border-zinc-900/60 hover:bg-zinc-900/20"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3 h-16">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-zinc-500">
-                  Nenhum resultado.
-                </TableCell>
-              </TableRow>
+              <AnimatePresence initial={false}>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <motion.tr
+                      key={row.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      data-state={row.getIsSelected() && "selected"}
+                      className="border-b border-zinc-800/40 hover:bg-zinc-900/40 transition-colors"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="py-3 h-16">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </motion.tr>
+                  ))
+                ) : (
+                  <motion.tr key="no-results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <TableCell colSpan={columns.length} className="h-24 text-center text-zinc-500">
+                      Nenhum resultado.
+                    </TableCell>
+                  </motion.tr>
+                )}
+              </AnimatePresence>
             )}
           </TableBody>
         </Table>
