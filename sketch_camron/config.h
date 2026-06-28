@@ -25,5 +25,6 @@
 // --- Stream ---
 // Port the camera HTTP server will listen on
 #define STREAM_PORT     81
+#define CONTROL_PORT    80
 
 #endif // CONFIG_H

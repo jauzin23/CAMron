@@ -16,6 +16,7 @@ import {
   Sparkles,
   Wifi,
   RefreshCw,
+  Flashlight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +31,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCameras } from "@/lib/api";
+import { getCameras, toggleFlash } from "@/lib/api";
 
 // Security camera configurations
 const TOKEN =
@@ -45,6 +46,7 @@ interface Camera {
   unsplashUrl?: string;
   /** For real cameras: the actual DB id used in the stream URL */
   dbId?: string;
+  flash_active?: boolean;
 }
 
 // Static fake cameras - always shown to fill the grid
@@ -311,23 +313,59 @@ export default function LivePage() {
   const [realCameras, setRealCameras] = useState<Camera[]>([]);
   const availableCameras: Camera[] = [...realCameras, ...FAKE_CAMERAS];
 
-  // Fetch real cameras from DB on mount
+  // Fetch real cameras from DB on mount and poll every 5 seconds to keep states in sync
   useEffect(() => {
-    getCameras()
-      .then((dbCams) => {
-        const mapped: Camera[] = dbCams.map((c, i) => ({
-          id: `real-db-${c.id}`,
-          dbId: c.id,
-          name: c.name,
-          type: "real" as const,
-        }));
-        setRealCameras(mapped);
-      })
-      .catch(() => {
-        // Backend unreachable - silently fall back to fakes only
-        setRealCameras([]);
-      });
+    const fetchCams = () => {
+      getCameras()
+        .then((dbCams) => {
+          const mapped: Camera[] = dbCams.map((c) => ({
+            id: `real-db-${c.id}`,
+            dbId: c.id,
+            name: c.name,
+            type: "real" as const,
+            flash_active: c.flash_active === true || c.flash_active === 1,
+          }));
+          setRealCameras(mapped);
+        })
+        .catch(() => {
+          // Backend unreachable - silently fall back to fakes or keep existing
+        });
+    };
+
+    fetchCams(); // Initial load
+    const interval = setInterval(fetchCams, 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleToggleFlash = async (dbId: string) => {
+    const cam = realCameras.find((c) => c.dbId === dbId);
+    if (!cam) return;
+    const previousState = cam.flash_active;
+
+    // Optimistic UI update
+    setRealCameras((prev) =>
+      prev.map((c) =>
+        c.dbId === dbId ? { ...c, flash_active: !previousState } : c
+      )
+    );
+
+    try {
+      const res = await toggleFlash(dbId);
+      setRealCameras((prev) =>
+        prev.map((c) =>
+          c.dbId === dbId ? { ...c, flash_active: res.flash_active } : c
+        )
+      );
+    } catch (err) {
+      console.error("Failed to toggle flash", err);
+      // Revert state on error
+      setRealCameras((prev) =>
+        prev.map((c) =>
+          c.dbId === dbId ? { ...c, flash_active: previousState } : c
+        )
+      );
+    }
+  };
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -418,6 +456,7 @@ export default function LivePage() {
           isFullscreen={fullscreenId === node.id}
           effects={effects}
           filterStyle={getColorFilterStyle()}
+          onToggleFlash={handleToggleFlash}
         />
       );
     }
@@ -552,6 +591,7 @@ export default function LivePage() {
                   isFullscreen={true}
                   effects={effects}
                   filterStyle={getColorFilterStyle()}
+                  onToggleFlash={handleToggleFlash}
                 />
               </div>
             ) : (
@@ -577,6 +617,7 @@ interface CameraCellProps {
   isFullscreen: boolean;
   effects: EffectSettings;
   filterStyle: string;
+  onToggleFlash: (dbId: string) => void;
 }
 
 function CameraCell({
@@ -591,6 +632,7 @@ function CameraCell({
   isFullscreen,
   effects,
   filterStyle,
+  onToggleFlash,
 }: CameraCellProps) {
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -825,6 +867,25 @@ function CameraCell({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {camera && camera.type === "real" && (
+          <>
+            <div className="w-px h-3.5 bg-zinc-800" />
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`h-6 w-6 rounded transition-colors ${
+                camera.flash_active
+                  ? "text-yellow-400 hover:text-yellow-300 hover:bg-yellow-950/20"
+                  : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+              }`}
+              onClick={() => onToggleFlash(camera.dbId || "")}
+              title={camera.flash_active ? "Desligar Lanterna" : "Ligar Lanterna"}
+            >
+              <Flashlight className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        )}
 
         <div className="w-px h-3.5 bg-zinc-800" />
 

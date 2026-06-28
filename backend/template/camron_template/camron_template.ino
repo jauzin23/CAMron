@@ -31,6 +31,18 @@
 // Declared in app_httpd.cpp
 void startCameraServer();
 
+#define FLASH_GPIO_NUM 4
+#include "esp_arduino_version.h"
+
+void setFlash(int value) {
+  #if defined(ESP_ARDUINO_VERSION) && ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+    ledcWrite(FLASH_GPIO_NUM, value);
+  #else
+    ledcWrite(LEDC_CHANNEL_4, value);
+  #endif
+  Serial.printf("Flash set to %d\n", value);
+}
+
 // ── Startup handshake ─────────────────────────────────────────
 // Tell the backend our IP so it can proxy to us.
 static void registerWithBackend() {
@@ -125,6 +137,16 @@ void setup() {
     while (true) { delay(1000); }
   }
   Serial.println("Camera init OK");
+
+  // ── Flash LED setup ──────────────────────────────────────────
+  #if defined(ESP_ARDUINO_VERSION) && ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+    ledcAttach(FLASH_GPIO_NUM, 5000, 8);
+    ledcWrite(FLASH_GPIO_NUM, 0);
+  #else
+    ledcSetup(LEDC_CHANNEL_4, 5000, 8);
+    ledcAttachPin(FLASH_GPIO_NUM, LEDC_CHANNEL_4);
+    ledcWrite(LEDC_CHANNEL_4, 0);
+  #endif
 
   sensor_t *s = esp_camera_sensor_get();
   s->set_framesize(s, FRAMESIZE_QVGA);

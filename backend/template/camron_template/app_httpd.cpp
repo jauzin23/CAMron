@@ -24,6 +24,7 @@ static const char *_STREAM_PART =
     "Content-Type: image/jpeg\r\nContent-Length: %u\r\nX-Timestamp: %d.%06d\r\n\r\n";
 
 static httpd_handle_t stream_httpd = NULL;
+static httpd_handle_t control_httpd = NULL;
 
 // ── Bearer token validation ───────────────────────────────────
 // Returns true if the request carries the correct bearer token.
@@ -121,6 +122,47 @@ static esp_err_t stream_handler(httpd_req_t *req) {
   return res;
 }
 
+extern void setFlash(int value);
+
+static esp_err_t flash_handler(httpd_req_t *req) {
+  if (!check_bearer(req)) {
+    return send_401(req);
+  }
+
+  char content[100];
+  size_t recv_size = req->content_len;
+  if (recv_size >= sizeof(content)) {
+    recv_size = sizeof(content) - 1;
+  }
+  int ret = httpd_req_recv(req, content, recv_size);
+  if (ret <= 0) {
+    if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+      httpd_resp_send_408(req);
+    }
+    return ESP_FAIL;
+  }
+  content[ret] = '\0';
+
+  int val = 0;
+  char *p = strstr(content, "\"value\"");
+  if (p) {
+    p = strchr(p, ':');
+    if (p) {
+      p++;
+      while (*p == ' ' || *p == '\t') p++;
+      val = atoi(p);
+    }
+  }
+
+  setFlash(val);
+
+  httpd_resp_set_type(req, "application/json");
+  char resp_str[64];
+  snprintf(resp_str, sizeof(resp_str), "{\"ok\":true,\"value\":%d}", val);
+  httpd_resp_sendstr(req, resp_str);
+  return ESP_OK;
+}
+
 // ── Catch-all handler - rejects everything that isn't /stream ─
 // Registered as a wildcard URI so stray requests get 401, not 404.
 static esp_err_t reject_handler(httpd_req_t *req) {
@@ -129,10 +171,40 @@ static esp_err_t reject_handler(httpd_req_t *req) {
 
 // ── Public entry point ────────────────────────────────────────
 void startCameraServer() {
-  httpd_config_t config  = HTTPD_DEFAULT_CONFIG();
-  config.server_port     = STREAM_PORT;
-  config.ctrl_port       = STREAM_PORT + 32; // avoid collision with default 32768
-  config.max_uri_handlers = 4;
+  // 1. Control server (port 80)
+  httpd_config_t control_config = HTTPD_DEFAULT_CONFIG();
+  control_config.server_port = CONTROL_PORT;
+  control_config.ctrl_port = 32768;
+  control_config.max_uri_handlers = 3;
+
+  httpd_uri_t flash_uri = {
+    .uri     = "/flash",
+    .method  = HTTP_POST,
+    .handler = flash_handler,
+    .user_ctx = NULL
+  };
+
+  httpd_uri_t reject_uri = {
+    .uri     = "/*",
+    .method  = HTTP_GET,
+    .handler = reject_handler,
+    .user_ctx = NULL
+  };
+
+  log_i("Starting control server on port %d", control_config.server_port);
+  if (httpd_start(&control_httpd, &control_config) == ESP_OK) {
+    httpd_register_uri_handler(control_httpd, &flash_uri);
+    httpd_register_uri_handler(control_httpd, &reject_uri);
+    log_i("Control server started on port %d", control_config.server_port);
+  } else {
+    log_e("Failed to start control server!");
+  }
+
+  // 2. Stream server (port 81)
+  httpd_config_t stream_config = HTTPD_DEFAULT_CONFIG();
+  stream_config.server_port = STREAM_PORT;
+  stream_config.ctrl_port = 32769;
+  stream_config.max_uri_handlers = 2;
 
   httpd_uri_t stream_uri = {
     .uri     = "/stream",
@@ -141,20 +213,12 @@ void startCameraServer() {
     .user_ctx = NULL
   };
 
-  // Wildcard: catch every other URI and return 401
-  httpd_uri_t reject_uri = {
-    .uri     = "/*",
-    .method  = HTTP_GET,
-    .handler = reject_handler,
-    .user_ctx = NULL
-  };
-
-  log_i("Starting stream server on port %d", config.server_port);
-  if (httpd_start(&stream_httpd, &config) == ESP_OK) {
+  log_i("Starting stream server on port %d", stream_config.server_port);
+  if (httpd_start(&stream_httpd, &stream_config) == ESP_OK) {
     httpd_register_uri_handler(stream_httpd, &stream_uri);
-    httpd_register_uri_handler(stream_httpd, &reject_uri);
-    log_i("Stream server started - /stream is bearer-protected");
+    log_i("Stream server started on port %d", stream_config.server_port);
   } else {
     log_e("Failed to start stream server!");
   }
 }
+

@@ -4,6 +4,7 @@ const express = require("express");
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const net = require("net");
+const http = require("http");
 
 const db = require("../db/connection");
 const { verifyBearer } = require("../middleware/auth");
@@ -223,21 +224,71 @@ router.post("/register", (req, res) => {
 
 // ── POST /api/cameras/:id/flash ───────────────────────────────────────────────
 router.post("/:id/flash", (req, res) => {
+  const { id } = req.params;
   try {
-    const camera = db
-      .prepare("SELECT * FROM cameras WHERE id = ?")
-      .get(req.params.id);
+    const camera = db.prepare("SELECT * FROM cameras WHERE id = ?").get(id);
     if (!camera) return res.status(404).json({ error: "Camera not found" });
+    if (!camera.ip) {
+      return res.status(400).json({ error: "A câmara ainda não registou o seu IP." });
+    }
 
-    const newState = camera.flash_active === 1 ? 0 : 1;
-    db.prepare(
-      "UPDATE cameras SET flash_active = ?, updated_at = ? WHERE id = ?",
-    ).run(newState, now(), req.params.id);
+    const active = camera.flash_active === 1 ? 0 : 1;
+    const value = active === 1 ? 100 : 0;
+    const postData = JSON.stringify({ value });
 
-    res.json({ ok: true, flash_active: newState === 1 });
+    const options = {
+      hostname: camera.ip,
+      port: 80,
+      path: "/flash",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${camera.api_key}`,
+        "Content-Length": Buffer.byteLength(postData),
+        "Connection": "close",
+      },
+      timeout: 3000,
+    };
+
+    const camReq = http.request(options, (camRes) => {
+      let data = "";
+      camRes.on("data", (chunk) => {
+        data += chunk;
+      });
+      camRes.on("end", () => {
+        if (camRes.statusCode === 200) {
+          db.prepare(
+            "UPDATE cameras SET flash_active = ?, updated_at = ? WHERE id = ?",
+          ).run(active, now(), id);
+          res.json({ ok: true, flash_active: active === 1 });
+        } else {
+          res
+            .status(camRes.statusCode)
+            .json({ error: `A câmara respondeu com o estado: ${camRes.statusCode}` });
+        }
+      });
+    });
+
+    camReq.on("error", (err) => {
+      if (!res.headersSent) {
+        res
+          .status(502)
+          .json({ error: `Não foi possível ligar à câmara: ${err.message}` });
+      }
+    });
+
+    camReq.on("timeout", () => {
+      camReq.destroy();
+      if (!res.headersSent) {
+        res.status(504).json({ error: "A ligação à câmara expirou." });
+      }
+    });
+
+    camReq.write(postData);
+    camReq.end();
   } catch (err) {
     console.error("[cameras] POST /:id/flash:", err.message);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
