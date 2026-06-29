@@ -11,8 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 const NAV = [
   { href: "/", label: "Centro de Controlo" },
   { href: "/live", label: "Live" },
-  { href: "/servers", label: "Servidores" },
-  { href: "/guide", label: "Guia" },
 ];
 
 export function LogoSvg({
