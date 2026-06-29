@@ -184,7 +184,7 @@ void setup() {
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Bearer " CAMERA_BEARER_TOKEN);
 
-    String body = "{\"id\":\"" CAMERA_ID "\",\"status\":\"success\",\"message\":\"hey, my friend, it worked mf\"}";
+    String body = "{\"id\":\"" CAMERA_ID "\",\"status\":\"success\",\"message\":\"Camera connected successfully!\"}";
     int confirmCode = http.POST(body);
     if (confirmCode > 0) {
       Serial.printf("Confirm responded: %d\n", confirmCode);
