@@ -113,11 +113,10 @@ out
 !.yarn/sdks
 !.yarn/versions
 
-#outro-front/
 sketch_websever/
 flash-teste/
 
-# Data and Databases
+# DB
 data/
 *.db
 *.db-shm
