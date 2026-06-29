@@ -227,11 +227,16 @@ export default function ControlCenterPage() {
           );
         }
         const active = camera.flash_active;
+        const isOffline = status === "offline";
         return (
           <button
-            onClick={() => handleToggleFlash(camera)}
-            className="cursor-pointer overflow-hidden rounded-full active:scale-95 transition-transform"
-            title="Clica para ligar/desligar"
+            onClick={() => !isOffline && handleToggleFlash(camera)}
+            disabled={isOffline}
+            className={cn(
+              "overflow-hidden rounded-full transition-transform",
+              isOffline ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"
+            )}
+            title={isOffline ? "Câmera offline" : "Clica para ligar/desligar"}
           >
             <div
               className={cn(
@@ -360,7 +365,7 @@ export default function ControlCenterPage() {
             <AuroraText>Centro de Controlo</AuroraText>
           </div>
         }
-        description="Gerencia e monitoriza as tuas câmaras."
+        description="Gerencie e monitorize as tuas câmaras."
       />
 
       {/* Camera Management */}

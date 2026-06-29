@@ -47,6 +47,7 @@ interface Camera {
   /** For real cameras: the actual DB id used in the stream URL */
   dbId?: string;
   flash_active?: boolean;
+  last_seen?: string | null;
 }
 
 // Static fake cameras - always shown to fill the grid
@@ -324,6 +325,7 @@ export default function LivePage() {
             name: c.name,
             type: "real" as const,
             flash_active: c.flash_active === true || c.flash_active === 1,
+            last_seen: c.last_seen,
           }));
           setRealCameras(mapped);
         })
@@ -874,11 +876,12 @@ function CameraCell({
             <Button
               size="icon"
               variant="ghost"
+              disabled={!camera.last_seen || (Date.now() - new Date(camera.last_seen).getTime()) / 1000 >= 10}
               className={`h-6 w-6 rounded transition-colors ${
                 camera.flash_active
                   ? "text-yellow-400 hover:text-yellow-300 hover:bg-yellow-950/20"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-              }`}
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
               onClick={() => onToggleFlash(camera.dbId || "")}
               title={camera.flash_active ? "Desligar Lanterna" : "Ligar Lanterna"}
             >
