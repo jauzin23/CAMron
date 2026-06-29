@@ -48,7 +48,7 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
                 </div>
                 <span
                   className={cn(
-                    "text-[11px] font-medium tracking-wide whitespace-nowrap",
+                    "text-[11px] font-medium tracking-wide text-center max-w-[80px] leading-tight mt-1",
                     isActive
                       ? "text-foreground"
                       : isDone
@@ -64,7 +64,7 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
               {!isLast && (
                 <div
                   className={cn(
-                    "mx-3 mb-5 h-px flex-1 min-w-[40px] transition-colors duration-300",
+                    "mx-1.5 sm:mx-3 mb-5 h-px flex-1 min-w-[20px] sm:min-w-[40px] transition-colors duration-300",
                     isDone && !step.skipped ? "bg-primary" : "bg-border"
                   )}
                 />
