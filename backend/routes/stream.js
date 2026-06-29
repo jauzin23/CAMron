@@ -42,7 +42,7 @@ function cleanupStream(camId) {
   delete activeStreams[camId];
 }
 
-// ── GET /stream ───────────────────────────────────────────────────────────────
+// GET /stream
 // Proxies the MJPEG stream from the camera (multiplexed).
 // Reads camera IP from DB. Bearer required.
 router.get("/", (req, res) => {
@@ -194,7 +194,7 @@ router.get("/", (req, res) => {
   });
 });
 
-// ── GET /viewer ───────────────────────────────────────────────────────────────
+// GET /viewer
 // Minimal HTML viewer served from backend. LAN-only diagnostic tool.
 router.get("/viewer", (req, res) => {
   const CAMERA_BEARER_TOKEN = process.env.CAMERA_BEARER_TOKEN;

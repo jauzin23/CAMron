@@ -9,7 +9,7 @@
 #include <Preferences.h>
 #include "config.h"
 
-// ── AI-Thinker pin map ────────────────────────────────────────
+// AI-Thinker pin map
 // These are fixed for the classic black ESP32-CAM module.
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
@@ -43,7 +43,7 @@ void setFlash(int value) {
   Serial.printf("Flash set to %d\n", value);
 }
 
-// ── Startup handshake ─────────────────────────────────────────
+// Startup handshake
 // Tell the backend our IP so it can proxy to us.
 static void registerWithBackend() {
   HTTPClient http;
@@ -69,13 +69,13 @@ static void registerWithBackend() {
   http.end();
 }
 
-// ── setup() ──────────────────────────────────────────────────
+// setup()
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println("\n\n=== CAMron booting ===");
 
-  // ── Serial Handshake Check ──────────────────────────────────
+  // Serial Handshake Check
   unsigned long startMs = millis();
   String rxBuffer = "";
   while (millis() - startMs < 1200) {
@@ -91,7 +91,7 @@ void setup() {
     delay(10);
   }
 
-  // ── Camera init ──────────────────────────────────────────────
+  // Camera init
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer   = LEDC_TIMER_0;
@@ -138,7 +138,7 @@ void setup() {
   }
   Serial.println("Camera init OK");
 
-  // ── Flash LED setup ──────────────────────────────────────────
+  // Flash LED setup
   #if defined(ESP_ARDUINO_VERSION) && ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
     ledcAttach(FLASH_GPIO_NUM, 5000, 8);
     ledcWrite(FLASH_GPIO_NUM, 0);
@@ -151,7 +151,7 @@ void setup() {
   sensor_t *s = esp_camera_sensor_get();
   s->set_framesize(s, FRAMESIZE_QVGA);
 
-  // ── WiFi ────────────────────────────────────────────────────
+  // WiFi
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setSleep(false);
@@ -171,7 +171,7 @@ void setup() {
   Serial.print("Camera IP: ");
   Serial.println(WiFi.localIP());
 
-  // ── First Boot NVS Check & Confirmation ─────────────────────
+  // First Boot NVS Check & Confirmation
   Preferences preferences;
   preferences.begin("camron", false);
   String storedId = preferences.getString("camera_id", "");
@@ -184,7 +184,7 @@ void setup() {
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Bearer " CAMERA_BEARER_TOKEN);
 
-    String body = "{\"id\":\"" CAMERA_ID "\",\"status\":\"success\",\"message\":\"hey, my friend, it worked mf\"}";
+    String body = "{\"id\":\"" CAMERA_ID "\",\"status\":\"success\",\"message\":\"Camera connected successfully!\"}";
     int confirmCode = http.POST(body);
     if (confirmCode > 0) {
       Serial.printf("Confirm responded: %d\n", confirmCode);
@@ -201,7 +201,7 @@ void setup() {
   }
   preferences.end();
 
-  // ── Handshake ───────────────────────────────────────────────
+  // Handshake
   registerWithBackend();
 
   s->set_framesize(s, FRAMESIZE_SVGA);
@@ -209,14 +209,14 @@ void setup() {
   s->set_hmirror(s, 1);
   Serial.println("Resolution upgraded to SVGA, orientation applied");
 
-  // ── Start stream server ─────────────────────────────────────
+  // Start stream server
   startCameraServer();
 
   Serial.printf("\nStream running at http://%s:%d/stream\n",
                 WiFi.localIP().toString().c_str(), STREAM_PORT);
 }
 
-// ── loop() ───────────────────────────────────────────────────
+// loop()
 void loop() {
   static unsigned long lastReg = 0;
   if (millis() - lastReg > 5UL * 60UL * 1000UL) {

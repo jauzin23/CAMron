@@ -34,7 +34,6 @@ import {
   getCameras,
   deleteCamera,
   toggleFlash,
-  clienteMe,
   type Camera,
 } from "@/lib/api";
 
@@ -57,20 +56,8 @@ function getCameraStatus(
 
 export default function ControlCenterPage() {
   const router = useRouter();
-  const [nome, setNome] = useState("");
-  const [nameLoading, setNameLoading] = useState(true);
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [camerasLoading, setCamerasLoading] = useState(true);
-
-  // Load user display name
-  useEffect(() => {
-    void clienteMe()
-      .then((me) => {
-        setNome(me.nome_utilizador);
-        setNameLoading(false);
-      })
-      .catch(() => setNameLoading(false));
-  }, []);
 
   // Load cameras from API
   const loadCameras = useCallback(async (showLoading = true) => {
@@ -240,11 +227,16 @@ export default function ControlCenterPage() {
           );
         }
         const active = camera.flash_active;
+        const isOffline = status === "offline";
         return (
           <button
-            onClick={() => handleToggleFlash(camera)}
-            className="cursor-pointer overflow-hidden rounded-full active:scale-95 transition-transform"
-            title="Clica para ligar/desligar"
+            onClick={() => !isOffline && handleToggleFlash(camera)}
+            disabled={isOffline}
+            className={cn(
+              "overflow-hidden rounded-full transition-transform",
+              isOffline ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"
+            )}
+            title={isOffline ? "Câmera offline" : "Clica para ligar/desligar"}
           >
             <div
               className={cn(
@@ -366,19 +358,14 @@ export default function ControlCenterPage() {
 
   return (
     <div className="flex flex-col gap-6 px-6 py-8">
-      {/* Header */}
       <PageHeader
         title={
           <div className="flex items-center gap-2">
-            <span>Bem-vindo,</span>
-            {nameLoading ? (
-              <Skeleton className="h-9 w-48 rounded-lg" />
-            ) : (
-              <AuroraText>{nome || "Utilizador"}</AuroraText>
-            )}
+            <span>Bem-vindo ao</span>
+            <AuroraText>Centro de Controlo</AuroraText>
           </div>
         }
-        description="Gerencia e monitoriza as tuas câmaras."
+        description="Gerencie e monitorize as tuas câmaras."
       />
 
       {/* Camera Management */}

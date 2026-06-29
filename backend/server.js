@@ -1,12 +1,3 @@
-// =============================================================
-// CAMron - Backend Server (entry point)
-// Mounts modular route files:
-//   /api/cameras  ← camera CRUD + ESP32 register + flashlight
-//   /stream       ← MJPEG proxy to camera
-//   /viewer       ← Simple HTML viewer (LAN-only diagnostic)
-//   /health       ← Uptime check
-// =============================================================
-
 "use strict";
 
 require("dotenv").config();
@@ -36,10 +27,10 @@ if (
   process.exit(1);
 }
 
-// ── Boot DB ──────────────────────────────────────────────────────────────────
+// Initialize database schema
 initSchema();
 
-// ── Cleanup Temp Compile Directories on Startup ──────────────────────────────
+// Cleanup temporary compilation directories on startup
 const tempDirRoot = path.join(__dirname, "temp");
 if (fs.existsSync(tempDirRoot)) {
   try {
@@ -51,28 +42,28 @@ if (fs.existsSync(tempDirRoot)) {
 }
 fs.mkdirSync(tempDirRoot, { recursive: true });
 
-// ── Middleware ────────────────────────────────────────────────────────────────
+// Setup middleware
 app.use(cors());
 app.use(express.json());
 
-// ── Routes ────────────────────────────────────────────────────────────────────
+// Setup routes
 app.use("/api/cameras", camerasRouter);
 app.use("/api", flashRouter);
 app.use("/stream", streamRouter);
 
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
-// ── Start ─────────────────────────────────────────────────────────────────────
+// Start server
 app.listen(PORT, () => {
   console.log(`\nCAMron backend listening on http://localhost:${PORT}`);
-  console.log(`  Health   → http://localhost:${PORT}/health`);
-  console.log(`  Cameras  → http://localhost:${PORT}/api/cameras`);
+  console.log(`  Health   : http://localhost:${PORT}/health`);
+  console.log(`  Cameras  : http://localhost:${PORT}/api/cameras`);
   console.log(
-    `  Stream   → http://localhost:${PORT}/stream  (bearer required)`,
+    `  Stream   : http://localhost:${PORT}/stream (bearer required)`,
   );
-  console.log(`  Viewer   → http://localhost:${PORT}/stream/viewer`);
+  console.log(`  Viewer   : http://localhost:${PORT}/stream/viewer`);
   console.log(
-    `  Register → POST http://localhost:${PORT}/api/cameras/register  (bearer required)`,
+    `  Register : POST http://localhost:${PORT}/api/cameras/register (bearer required)`,
   );
-  console.log(`  Token    → ${CAMERA_BEARER_TOKEN.slice(0, 6)}...[redacted]\n`);
+  console.log(`  Token    : ${CAMERA_BEARER_TOKEN.slice(0, 6)}...[redacted]\n`);
 });

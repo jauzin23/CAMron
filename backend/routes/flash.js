@@ -60,12 +60,12 @@ if (!fs.existsSync(tempDirRoot)) {
   fs.mkdirSync(tempDirRoot, { recursive: true });
 }
 
-// ── GET /api/network-info ──────────────────────────────────────────────────
+// GET /api/network-info
 router.get("/network-info", (req, res) => {
   res.json({ ip: DETECTED_IP, port: process.env.PORT || 3000 });
 });
 
-// ── POST /api/compile/initiate ──────────────────────────────────────────────
+// POST /api/compile/initiate
 router.post("/compile/initiate", (req, res) => {
   const { wifi_ssid, wifi_password, custom_host, custom_port, cameraId, name } = req.body;
 
@@ -124,7 +124,7 @@ router.post("/compile/initiate", (req, res) => {
   }
 });
 
-// ── GET /api/compile/stream/:cameraId ──────────────────────────────────────
+// GET /api/compile/stream/:cameraId
 router.get("/compile/stream/:cameraId", (req, res) => {
   const { cameraId } = req.params;
   const compilation = compilations[cameraId];
@@ -272,7 +272,7 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   });
 });
 
-// ── GET /api/download/:cameraId/:filename ──────────────────────────────────
+// GET /api/download/:cameraId/:filename
 router.get("/download/:cameraId/:filename", (req, res) => {
   const { cameraId, filename } = req.params;
   const compilation = compilations[cameraId];
@@ -298,7 +298,7 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   }
 });
 
-// ── POST /api/confirm-flash ────────────────────────────────────────────────
+// POST /api/confirm-flash
 // Called by the ESP32 on its first boot to report success
 router.post("/confirm-flash", (req, res) => {
   const { id, status, message } = req.body;
@@ -349,7 +349,7 @@ router.post("/confirm-flash", (req, res) => {
   }
 });
 
-// ── GET /api/confirm-status/:cameraId ──────────────────────────────────────
+// GET /api/confirm-status/:cameraId
 router.get("/confirm-status/:cameraId", (req, res) => {
   const { cameraId } = req.params;
   const confirmation = confirmations[cameraId];
@@ -384,7 +384,7 @@ router.get("/confirm-status/:cameraId", (req, res) => {
   res.json({ confirmed: false });
 });
 
-// ── Cleanup Endpoint ────────────────────────────────────────────────────────
+// Cleanup Endpoint
 router.post("/cleanup/:cameraId", (req, res) => {
   const { cameraId } = req.params;
   const targetDir = path.join(tempDirRoot, `temp_${cameraId}`);
