@@ -61,6 +61,8 @@ setInterval(() => {
       const isOnline = await pingCamera(c.ip, 81, 2000);
       if (isOnline) {
         db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(now(), c.id);
+      } else {
+        db.prepare("UPDATE cameras SET flash_active = 0 WHERE id = ?").run(c.id);
       }
     });
   } catch (err) {
@@ -200,7 +202,7 @@ router.post("/register", (req, res) => {
     }
 
     db.prepare(
-      "UPDATE cameras SET ip = ?, last_seen = ?, updated_at = ? WHERE id = ?",
+      "UPDATE cameras SET ip = ?, last_seen = ?, updated_at = ?, flash_active = 0 WHERE id = ?",
     ).run(ip, now(), now(), id);
 
     // Also insert into flash_history to satisfy the frontend confirmation polling!
