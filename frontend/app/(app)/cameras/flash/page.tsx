@@ -68,7 +68,21 @@ function FlashCameraContent() {
   );
 }
 
+import { useDevice } from "@/lib/device-context";
+import { DeviceRestrictedPage } from "@/components/device-restricted-page";
+
 export default function FlashCameraPage() {
+  const { isDesktop } = useDevice();
+
+  if (!isDesktop) {
+    return (
+      <DeviceRestrictedPage
+        title="Gravação de Firmware Restrita"
+        description="A gravação de firmware requer ligação física via USB utilizando a norma WebUSB, funcionalidade apenas disponível em browsers de computadores (Desktop)."
+      />
+    );
+  }
+
   return (
     <Suspense fallback={
       <div className="flex h-40 items-center justify-center text-muted-foreground gap-2">
@@ -80,3 +94,4 @@ export default function FlashCameraPage() {
     </Suspense>
   );
 }
+

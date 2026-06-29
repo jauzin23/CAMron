@@ -36,6 +36,7 @@ import {
   toggleFlash,
   type Camera,
 } from "@/lib/api";
+import { useDevice } from "@/lib/device-context";
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("pt-PT", {
@@ -56,6 +57,7 @@ function getCameraStatus(
 
 export default function ControlCenterPage() {
   const router = useRouter();
+  const { isDesktop } = useDevice();
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [camerasLoading, setCamerasLoading] = useState(true);
 
@@ -218,8 +220,13 @@ export default function ControlCenterPage() {
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-zinc-950 transition-colors shadow-xs cursor-pointer px-2"
-              onClick={() => router.push(`/cameras/flash?id=${camera.id}`)}
+              className={cn(
+                "h-7 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-500 transition-colors shadow-xs px-2",
+                !isDesktop ? "opacity-50 cursor-not-allowed" : "hover:bg-amber-500 hover:text-zinc-950 cursor-pointer"
+              )}
+              onClick={() => isDesktop && router.push(`/cameras/flash?id=${camera.id}`)}
+              disabled={!isDesktop}
+              title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
             >
               <Cpu className="h-3.5 w-3.5 mr-1" />
               Gravar Firmware
@@ -228,13 +235,14 @@ export default function ControlCenterPage() {
         }
         const active = camera.flash_active;
         const isOffline = status === "offline";
+        const isDisabled = isOffline;
         return (
           <button
-            onClick={() => !isOffline && handleToggleFlash(camera)}
-            disabled={isOffline}
+            onClick={() => !isDisabled && handleToggleFlash(camera)}
+            disabled={isDisabled}
             className={cn(
               "overflow-hidden rounded-full transition-transform",
-              isOffline ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"
+              isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"
             )}
             title={isOffline ? "Câmera offline" : "Clica para ligar/desligar"}
           >
@@ -295,6 +303,8 @@ export default function ControlCenterPage() {
       header: () => <div className="text-right pr-2">Ações</div>,
       cell: ({ row }) => {
         const camera = row.original;
+        const status = getCameraStatus(camera);
+        const isOffline = status === "offline";
         return (
           <div className="text-right pr-2">
             <DropdownMenu>
@@ -326,10 +336,39 @@ export default function ControlCenterPage() {
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>Copiar IP</span>
                 </DropdownMenuItem>
+                
+                {!(status === "unconfigured") && (
+                  <DropdownMenuItem
+                    onClick={() => !isOffline && handleToggleFlash(camera)}
+                    disabled={isOffline}
+                    className={cn(
+                      "cursor-pointer gap-2 text-xs focus:bg-zinc-900 focus:text-zinc-50",
+                      isOffline && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {camera.flash_active ? (
+                      <>
+                        <LightbulbOff className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>Desligar Lanterna</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lightbulb className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>Ligar Lanterna</span>
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                )}
+
                 <DropdownMenuSeparator className="bg-border/60" />
                 <DropdownMenuItem
-                  onClick={() => router.push(`/cameras/flash?id=${camera.id}`)}
-                  className="cursor-pointer gap-2 text-xs focus:bg-zinc-900"
+                  onClick={() => isDesktop && router.push(`/cameras/flash?id=${camera.id}`)}
+                  disabled={!isDesktop}
+                  className={cn(
+                    "gap-2 text-xs focus:bg-zinc-900",
+                    !isDesktop ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  )}
+                  title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
                 >
                   <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>Gravar Firmware</span>
@@ -357,10 +396,10 @@ export default function ControlCenterPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-8">
+    <div className="flex flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
       <PageHeader
         title={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span>Bem-vindo ao</span>
             <AuroraText>Centro de Controlo</AuroraText>
           </div>
@@ -377,20 +416,28 @@ export default function ControlCenterPage() {
           filterColumnKey="name"
           filterPlaceholder="Pesquisar câmara..."
           actionButton={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="h-9 gap-2 font-medium border-zinc-800 hover:bg-zinc-900 text-zinc-300 cursor-pointer"
-                onClick={() => router.push("/cameras/flash")}
-                disabled={camerasLoading || cameras.length === 0}
+                className={cn(
+                  "h-9 gap-2 font-medium border-zinc-800 text-zinc-300 w-full sm:w-auto",
+                  (!isDesktop || camerasLoading || cameras.length === 0) ? "opacity-50 cursor-not-allowed" : "hover:bg-zinc-900 cursor-pointer"
+                )}
+                onClick={() => isDesktop && router.push("/cameras/flash")}
+                disabled={camerasLoading || cameras.length === 0 || !isDesktop}
+                title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
               >
                 <Cpu className="h-4 w-4 text-primary" />
                 Gravar Firmware (USB)
               </Button>
               <Button
-                className="h-9 gap-2 font-medium cursor-pointer"
-                onClick={() => router.push("/cameras/new")}
-                disabled={camerasLoading}
+                className={cn(
+                  "h-9 gap-2 font-medium w-full sm:w-auto",
+                  (!isDesktop || camerasLoading) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                )}
+                onClick={() => isDesktop && router.push("/cameras/new")}
+                disabled={camerasLoading || !isDesktop}
+                title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
               >
                 <Plus className="h-4 w-4" />
                 Adicionar Câmara

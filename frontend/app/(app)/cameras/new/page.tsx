@@ -136,10 +136,25 @@ function NewCameraContent() {
   );
 }
 
+import { useDevice } from "@/lib/device-context";
+import { DeviceRestrictedPage } from "@/components/device-restricted-page";
+
 export default function NewCameraPage() {
+  const { isDesktop } = useDevice();
+
+  if (!isDesktop) {
+    return (
+      <DeviceRestrictedPage
+        title="Adicionar Câmara Restrita"
+        description="A adição e configuração de novas câmaras requer a gravação de firmware via USB, funcionalidade apenas disponível em computadores (Desktop)."
+      />
+    );
+  }
+
   return (
     <Suspense>
       <NewCameraContent />
     </Suspense>
   );
 }
+

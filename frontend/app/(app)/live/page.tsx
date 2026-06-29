@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/resizable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCameras, toggleFlash } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 // Security camera configurations
 const TOKEN =
@@ -324,7 +325,7 @@ export default function LivePage() {
             dbId: c.id,
             name: c.name,
             type: "real" as const,
-            flash_active: c.flash_active === true || c.flash_active === 1,
+            flash_active: c.flash_active === true || (c.flash_active as any) === 1,
             last_seen: c.last_seen,
           }));
           setRealCameras(mapped);
@@ -641,6 +642,16 @@ function CameraCell({
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
+  const [showControls, setShowControls] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleBlur = (e: React.FocusEvent) => {
+    if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    setShowControls(false);
+  };
+
   // Resolve camera ID with support for legacy "real-1" mapping to first real camera
   let camera = cameras.find((c) => c.id === cameraId);
   if (!camera && cameraId === "real-1") {
@@ -656,7 +667,13 @@ function CameraCell({
 
   if (!cameraId) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center group transition-all duration-300 relative border border-zinc-900/50 hover:border-zinc-800/80 select-none animate-fade-in">
+      <div 
+        tabIndex={0}
+        onFocus={() => setShowControls(true)}
+        onBlur={handleBlur}
+        onClick={() => setShowControls((prev) => !prev)}
+        className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center group transition-all duration-300 relative border border-zinc-900/50 hover:border-zinc-800/80 select-none animate-fade-in outline-none"
+      >
         {/* Stylized background matrix lines */}
         <div
           className="absolute inset-0 opacity-[0.02] pointer-events-none"
@@ -667,7 +684,10 @@ function CameraCell({
           }}
         />
 
-        <div className="flex flex-col items-center gap-3 z-10 max-w-[320px]">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="flex flex-col items-center gap-3 z-10 max-w-[320px]"
+        >
           <div className="h-10 w-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center group-hover:scale-105 group-hover:border-zinc-700 transition-all duration-300 shadow-md">
             <Plus className="h-5 w-5 text-zinc-500 group-hover:text-zinc-300 transition-colors duration-300" />
           </div>
@@ -681,7 +701,7 @@ function CameraCell({
             </p>
           </div>
 
-          <DropdownMenu>
+          <DropdownMenu onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 size="sm"
@@ -706,7 +726,13 @@ function CameraCell({
         </div>
 
         {/* Small split overlay controls for empty node */}
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-xs p-1 rounded-md border border-zinc-800">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className={cn(
+            "absolute bottom-2 right-2 transition-all duration-300 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-xs p-1 rounded-md border border-zinc-800",
+            (showControls || isDropdownOpen) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+        >
           <Button
             size="icon"
             variant="ghost"
@@ -741,8 +767,16 @@ function CameraCell({
     );
   }
 
+  const isVisible = showControls || isDropdownOpen;
+
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black group border border-zinc-900 select-none animate-fade-in">
+    <div 
+      tabIndex={0}
+      onFocus={() => setShowControls(true)}
+      onBlur={handleBlur}
+      onClick={() => setShowControls((prev) => !prev)}
+      className="relative w-full h-full overflow-hidden bg-black group border border-zinc-900 select-none animate-fade-in outline-none"
+    >
       {/* Video Content / Placeholder */}
       <div
         className="w-full h-full flex items-center justify-center bg-black relative overflow-hidden transition-all"
@@ -840,8 +874,14 @@ function CameraCell({
       )}
 
       {/* Hover Toolbar Controls Overlay - Docked in the bottom-right, matching the empty cell toolbar style */}
-      <div className="absolute bottom-2 right-2 z-30 opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out flex items-center gap-1 bg-zinc-900/90 backdrop-blur-xs p-1 rounded-md border border-zinc-800 shadow-md">
-        <DropdownMenu>
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "absolute bottom-2 right-2 z-30 transition-all duration-300 ease-out flex items-center gap-1 bg-zinc-900/90 backdrop-blur-xs p-1 rounded-md border border-zinc-800 shadow-md",
+          isVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}
+      >
+        <DropdownMenu onOpenChange={setIsDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
