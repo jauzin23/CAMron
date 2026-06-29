@@ -7,11 +7,10 @@ const net = require("net");
 const http = require("http");
 
 const db = require("../db/connection");
-const { verifyBearer } = require("../middleware/auth");
 
 const router = express.Router();
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 function generateApiKey() {
   return crypto.randomBytes(32).toString("hex");
@@ -62,6 +61,8 @@ setInterval(() => {
       const isOnline = await pingCamera(c.ip, 81, 2000);
       if (isOnline) {
         db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(now(), c.id);
+      } else {
+        db.prepare("UPDATE cameras SET flash_active = 0 WHERE id = ?").run(c.id);
       }
     });
   } catch (err) {
@@ -69,7 +70,7 @@ setInterval(() => {
   }
 }, 5000);
 
-// ── GET /api/cameras ─────────────────────────────────────────────────────────
+// GET /api/cameras
 router.get("/", (req, res) => {
   try {
     const cameras = db
@@ -88,7 +89,7 @@ router.get("/", (req, res) => {
   }
 });
 
-// ── POST /api/cameras ────────────────────────────────────────────────────────
+// POST /api/cameras
 router.post("/", (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) {
@@ -116,7 +117,7 @@ router.post("/", (req, res) => {
   }
 });
 
-// ── GET /api/cameras/:id ──────────────────────────────────────────────────────
+// GET /api/cameras/:id
 router.get("/:id", (req, res) => {
   try {
     const camera = db
@@ -130,7 +131,7 @@ router.get("/:id", (req, res) => {
   }
 });
 
-// ── PUT /api/cameras/:id ──────────────────────────────────────────────────────
+// PUT /api/cameras/:id
 router.put("/:id", (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) {
@@ -159,7 +160,7 @@ router.put("/:id", (req, res) => {
   }
 });
 
-// ── DELETE /api/cameras/:id ───────────────────────────────────────────────────
+// DELETE /api/cameras/:id
 router.delete("/:id", (req, res) => {
   try {
     const camera = db
@@ -175,9 +176,8 @@ router.delete("/:id", (req, res) => {
   }
 });
 
-// ── POST /api/cameras/register ────────────────────────────────────────────────
+// POST /api/cameras/register
 // Called by ESP32 on boot to announce its IP. Authenticates with its unique api_key.
-// Note: This must be defined BEFORE /:id routes to avoid param conflict.
 router.post("/register", (req, res) => {
   const { id, ip } = req.body;
   if (!id || !ip) {
@@ -202,7 +202,7 @@ router.post("/register", (req, res) => {
     }
 
     db.prepare(
-      "UPDATE cameras SET ip = ?, last_seen = ?, updated_at = ? WHERE id = ?",
+      "UPDATE cameras SET ip = ?, last_seen = ?, updated_at = ?, flash_active = 0 WHERE id = ?",
     ).run(ip, now(), now(), id);
 
     // Also insert into flash_history to satisfy the frontend confirmation polling!
@@ -222,7 +222,7 @@ router.post("/register", (req, res) => {
   }
 });
 
-// ── POST /api/cameras/:id/flash ───────────────────────────────────────────────
+// POST /api/cameras/:id/flash
 router.post("/:id/flash", (req, res) => {
   const { id } = req.params;
   try {
