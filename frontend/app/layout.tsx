@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { DeviceProvider } from "@/lib/device-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,9 +31,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans antialiased" suppressHydrationWarning>
-        {children}
+        <DeviceProvider>
+          {children}
+        </DeviceProvider>
         <Toaster position="top-right" />
       </body>
     </html>
   );
 }
+

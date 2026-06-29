@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -65,7 +66,7 @@ export function DataTable<TData, TValue>({
     <div className="space-y-4">
       {/* Top Filter and Actions Row */}
       {(filterColumnKey || actionButton) && (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {filterColumnKey && (
             <Input
               placeholder={filterPlaceholder}
@@ -73,23 +74,32 @@ export function DataTable<TData, TValue>({
               onChange={(event) =>
                 table.getColumn(filterColumnKey)?.setFilterValue(event.target.value)
               }
-              className="max-w-sm border-zinc-800 bg-zinc-950"
+              className="w-full sm:max-w-xs border-zinc-800 bg-zinc-950"
               disabled={isLoading}
             />
           )}
-          {actionButton && <div className="ml-auto">{actionButton}</div>}
+          {actionButton && <div className="w-full sm:w-auto sm:ml-auto">{actionButton}</div>}
         </div>
       )}
 
       {/* Table Container */}
-      <div className="overflow-hidden rounded-xl border border-zinc-800/60 bg-zinc-950/50 shadow-sm backdrop-blur-sm">
-        <Table>
+      <div className="overflow-x-auto rounded-xl border border-zinc-800/60 bg-zinc-950/50 shadow-sm backdrop-blur-sm">
+        <Table className="w-full">
           <TableHeader className="bg-zinc-950 border-b border-zinc-800">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-zinc-800">
                 {headerGroup.headers.map((header) => {
+                  const isIpOrCreatedAt = header.id === "ip" || header.id === "created_at";
+                  const isFlashActive = header.id === "flash_active";
                   return (
-                    <TableHead key={header.id} className="text-zinc-400 font-medium h-10">
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        "text-zinc-400 font-medium h-10",
+                        isIpOrCreatedAt && "hidden md:table-cell",
+                        isFlashActive && "hidden sm:table-cell"
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -111,8 +121,17 @@ export function DataTable<TData, TValue>({
                 >
                   {columns.map((column, colIndex) => {
                     const colId = column.id || (column as any).accessorKey;
+                    const isIpOrCreatedAt = colId === "ip" || colId === "created_at";
+                    const isFlashActive = colId === "flash_active";
                     return (
-                      <TableCell key={`skeleton-cell-${rowIndex}-${colIndex}`} className="py-3 h-16">
+                      <TableCell
+                        key={`skeleton-cell-${rowIndex}-${colIndex}`}
+                        className={cn(
+                          "py-3 h-16",
+                          isIpOrCreatedAt && "hidden md:table-cell",
+                          isFlashActive && "hidden sm:table-cell"
+                        )}
+                      >
                         {colId === "name" ? (
                           <div className="flex flex-col gap-1 pl-2">
                             <Skeleton className="h-4 w-28" />
@@ -153,11 +172,22 @@ export function DataTable<TData, TValue>({
                       data-state={row.getIsSelected() && "selected"}
                       className="border-b border-zinc-800/40 hover:bg-zinc-900/40 transition-colors"
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3 h-16">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
+                      {row.getVisibleCells().map((cell) => {
+                        const isIpOrCreatedAt = cell.column.id === "ip" || cell.column.id === "created_at";
+                        const isFlashActive = cell.column.id === "flash_active";
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              "py-3 h-16",
+                              isIpOrCreatedAt && "hidden md:table-cell",
+                              isFlashActive && "hidden sm:table-cell"
+                            )}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        );
+                      })}
                     </motion.tr>
                   ))
                 ) : (
