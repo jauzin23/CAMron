@@ -783,14 +783,106 @@ function CameraCell({
         style={{ filter: filterStyle }}
       >
         {!camera ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 p-6 text-center gap-2">
-            <AlertCircle className="h-6 w-6 text-zinc-500" />
-            <span className="text-zinc-400 font-mono text-xs">
-              Câmara não configurada
-            </span>
-            <p className="text-[10px] text-zinc-600 max-w-[180px] font-mono">
-              ID: {cameraId}
-            </p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 p-6 text-center group transition-all duration-300">
+            {/* Stylized background matrix lines */}
+            <div
+              className="absolute inset-0 opacity-[0.02] pointer-events-none"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }}
+            />
+
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="flex flex-col items-center gap-3 z-10 max-w-[320px]"
+            >
+              <div className="h-10 w-10 rounded-xl bg-zinc-900 border border-red-900/30 flex items-center justify-center group-hover:scale-105 transition-all duration-300 shadow-md">
+                <AlertCircle className="h-5 w-5 text-red-500/80" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-red-400/90">
+                  Câmara Inacessível
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  A câmara foi removida ou não está disponível.
+                </p>
+              </div>
+
+              <div className="flex gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:text-white text-xs h-8 transition-colors"
+                  onClick={() => onSelectCamera(null)}
+                >
+                  Limpar Painel
+                </Button>
+
+                <DropdownMenu onOpenChange={setIsDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="bg-white text-black hover:bg-zinc-200 text-xs h-8 transition-colors"
+                    >
+                      Mapear Feed
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-zinc-950 border-zinc-850 text-white w-56">
+                    {cameras.map((cam) => (
+                      <DropdownMenuItem
+                        key={cam.id}
+                        className="hover:bg-zinc-900 focus:bg-zinc-900 text-xs py-2 cursor-pointer transition-colors"
+                        onClick={() => onSelectCamera(cam.id)}
+                      >
+                        {cam.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Small split overlay controls for empty node */}
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className={cn(
+                "absolute bottom-2 right-2 transition-all duration-300 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-xs p-1 rounded-md border border-zinc-800",
+                (showControls || isDropdownOpen) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              )}
+            >
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
+                onClick={() => onSplit("horizontal")}
+                title="Dividir Horizontal"
+              >
+                <Columns className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
+                onClick={() => onSplit("vertical")}
+                title="Dividir Vertical"
+              >
+                <Rows className="h-3.5 w-3.5" />
+              </Button>
+              {!isDeleteDisabled && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 hover:bg-zinc-800 rounded text-red-400 hover:text-red-300 hover:bg-red-950/20 transition-colors"
+                  onClick={onDelete}
+                  title="Remover Painel"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
         ) : camera.type === "real" ? (
           <img
