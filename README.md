@@ -106,6 +106,12 @@ _COMING SOON_
 
 ---
 
+## FAQ's
+
+_COMING SOON_
+
+---
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
