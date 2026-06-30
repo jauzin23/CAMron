@@ -37,8 +37,7 @@ import { cn } from "@/lib/utils";
 // Security camera configurations
 const TOKEN =
   "fd70b9def358ed9d30406a5a63b0e6d725863f09f801291e0952399e1b8ddb85";
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
 interface Camera {
   id: string;

@@ -1,9 +1,6 @@
 // Camera API endpoints for CAMron. All calls go to NEXT_PUBLIC_BACKEND_URL.
 
-const BACKEND_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3000")
-    : (process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3000");
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
 export type Camera = {
   id: string;
