@@ -52,7 +52,7 @@ function getLocalIp() {
   return fallbackIp;
 }
 
-const DETECTED_IP = getLocalIp();
+const DETECTED_IP = process.env.HOST_IP || getLocalIp();
 
 // Ensure the temp directory exists
 const tempDirRoot = path.join(__dirname, "..", "temp");
@@ -62,7 +62,8 @@ if (!fs.existsSync(tempDirRoot)) {
 
 // GET /api/network-info
 router.get("/network-info", (req, res) => {
-  res.json({ ip: DETECTED_IP, port: process.env.PORT || 3000 });
+  // Use PUBLIC_PORT if set (e.g., public gateway port in Docker), fallback to internal PORT
+  res.json({ ip: DETECTED_IP, port: process.env.PUBLIC_PORT || process.env.PORT || 3000 });
 });
 
 // POST /api/compile/initiate
