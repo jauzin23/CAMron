@@ -415,7 +415,7 @@ router.get("/download/:cameraId/:filename", (req, res) => {
 // POST /api/confirm-flash
 // Called by the ESP32 on its first boot to report success
 router.post("/confirm-flash", (req, res) => {
-  const { id, status, message } = req.body;
+  const { id } = req.body;
   const authHeader = req.headers["authorization"] || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -443,8 +443,6 @@ router.post("/confirm-flash", (req, res) => {
   }
 
   confirmations[id] = {
-    status: status || "success",
-    message: message || "Configuração efetuada com sucesso!",
     timestamp: new Date()
   };
 
@@ -455,8 +453,8 @@ router.post("/confirm-flash", (req, res) => {
     // Also update camera seen details
     db.prepare("UPDATE cameras SET last_seen = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(id);
 
-    console.log(`[handshake] Câmara ${id} confirmou primeiro arranque: ${message}`);
-    res.json({ ok: true, message: "Confirmação registada." });
+    console.log(`[handshake] Câmara ${id} confirmou primeiro arranque com sucesso.`);
+    res.json({ ok: true });
   } catch (err) {
     console.error("[handshake] Erro ao registar confirmação na DB:", err.message);
     res.status(500).json({ error: "Erro interno ao processar confirmação" });
@@ -485,7 +483,7 @@ router.get("/confirm-status/:cameraId", (req, res) => {
   const confirmation = confirmations[cameraId];
 
   if (confirmation) {
-    return res.json({ confirmed: true, status: confirmation.status, message: confirmation.message });
+    return res.json({ confirmed: true });
   }
 
   // Fallback: Check if the camera has registered with the backend since compile/flash was initiated
@@ -500,9 +498,7 @@ router.get("/confirm-status/:cameraId", (req, res) => {
         // If the registration happened after we initiated compile/flash, or was very recent (last 15s)
         if (lastSeenDate >= compileDate || (new Date() - lastSeenDate) < 15000) {
           return res.json({ 
-            confirmed: true, 
-            status: "success", 
-            message: "Câmara online (registada via handshake regular)!" 
+            confirmed: true
           });
         }
       }

@@ -75,21 +75,7 @@ void setup() {
   Serial.setDebugOutput(true);
   Serial.println("\n\n=== CAMron booting ===");
 
-  // Serial Handshake Check
-  unsigned long startMs = millis();
-  String rxBuffer = "";
-  while (millis() - startMs < 1200) {
-    if (Serial.available() > 0) {
-      char c = Serial.read();
-      rxBuffer += c;
-      if (rxBuffer.indexOf("CAMRON_HANDSHAKE") != -1) {
-        Serial.print("CAMRON_ID:");
-        Serial.println(CAMERA_ID);
-        break;
-      }
-    }
-    delay(10);
-  }
+
 
   // Camera init
   camera_config_t config;
@@ -184,7 +170,7 @@ void setup() {
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Bearer " CAMERA_BEARER_TOKEN);
 
-    String body = "{\"id\":\"" CAMERA_ID "\",\"status\":\"success\",\"message\":\"Camera connected successfully!\"}";
+    String body = "{\"id\":\"" CAMERA_ID "\"}";
     int confirmCode = http.POST(body);
     if (confirmCode > 0) {
       Serial.printf("Confirm responded: %d\n", confirmCode);
