@@ -71,6 +71,11 @@ static void registerWithBackend() {
 
 // setup()
 void setup() {
+  // Aguarda 500ms para o adaptador CH340C/USB-Serial libertar as linhas DTR/RTS
+  // após o flash. Evita corrida entre o boot do chip e o controlo das linhas
+  // pelo browser via Web Serial. Sem este delay, o EN pode ainda estar LOW.
+  delay(500);
+
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println("\n\n=== CAMron booting ===");
