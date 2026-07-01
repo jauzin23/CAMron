@@ -122,7 +122,6 @@ export function CameraFlasher({
   const [verificationStatus, setVerificationStatus] = useState<
     "waiting" | "timeout"
   >("waiting");
-  const [verifiedMessage, setVerifiedMessage] = useState<string>("");
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Error message
@@ -609,7 +608,6 @@ export function CameraFlasher({
   // Step 4: Long-polling verification
   const startPollingVerification = (targetCameraId: string) => {
     setVerificationStatus("waiting");
-    setVerifiedMessage("");
     setSerialLogs("");
 
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -680,7 +678,6 @@ export function CameraFlasher({
           const data = await res.json();
           if (data.confirmed) {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-            setVerifiedMessage(data.message || "Câmara online!");
             void stopSerialLogs();
             setStep("success");
             toast.success("Câmara configurada e ligada com sucesso!");
@@ -1115,11 +1112,6 @@ export function CameraFlasher({
                   A sua câmara foi configurada com sucesso e já está ligada à
                   rede sem fios.
                 </p>
-                {verifiedMessage && (
-                  <p className="text-xs text-emerald-500/80 font-mono italic mt-1 max-w-xs mx-auto">
-                    &quot;{verifiedMessage}&quot;
-                  </p>
-                )}
               </div>
 
               <div className="w-full max-w-xs mt-2">
