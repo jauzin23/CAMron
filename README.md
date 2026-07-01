@@ -36,7 +36,7 @@ Home security and peace of mind shouldn't be expensive luxurie.
 
 Most DIY security camera projects require you to install an IDE, configure libraries, and edit C++ files manually just to connect to your Wi-Fi. On the other hand, commercial systems are expensive, require subscriptions, and store your private video feeds in the cloud.
 
-**CAMron** offers the best of both worlds:
+**CAMron** offers:
 
 - **Zero Code Required:** If you can type your Wi-Fi password into a browser, you can set up a CAMron camera. The heavy lifting (firmware compilation and flashing) is done entirely through the web interface.
 - **100% Local & Private:** No cloud servers, no hidden tracking, and no subscriptions. Your video feeds never leave your local network.
