@@ -71,25 +71,16 @@ static void registerWithBackend() {
 
 // setup()
 void setup() {
+  // Aguarda 500ms para o adaptador CH340C/USB-Serial libertar as linhas DTR/RTS
+  // após o flash. Evita corrida entre o boot do chip e o controlo das linhas
+  // pelo browser via Web Serial. Sem este delay, o EN pode ainda estar LOW.
+  delay(500);
+
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println("\n\n=== CAMron booting ===");
 
-  // Serial Handshake Check
-  unsigned long startMs = millis();
-  String rxBuffer = "";
-  while (millis() - startMs < 1200) {
-    if (Serial.available() > 0) {
-      char c = Serial.read();
-      rxBuffer += c;
-      if (rxBuffer.indexOf("CAMRON_HANDSHAKE") != -1) {
-        Serial.print("CAMRON_ID:");
-        Serial.println(CAMERA_ID);
-        break;
-      }
-    }
-    delay(10);
-  }
+
 
   // Camera init
   camera_config_t config;
@@ -184,7 +175,7 @@ void setup() {
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Bearer " CAMERA_BEARER_TOKEN);
 
-    String body = "{\"id\":\"" CAMERA_ID "\",\"status\":\"success\",\"message\":\"Camera connected successfully!\"}";
+    String body = "{\"id\":\"" CAMERA_ID "\"}";
     int confirmCode = http.POST(body);
     if (confirmCode > 0) {
       Serial.printf("Confirm responded: %d\n", confirmCode);
