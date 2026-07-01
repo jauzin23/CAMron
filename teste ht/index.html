@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gravar Software na Câmara · CAMron</title>
+<style>
+  /* System font stack matching shadcn defaults */
+  body {
+    background-color: #09090b;
+    color: #fafafa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Muted ambient aura backing the pixel art */
+  .mascot-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 11; /* Maintains layout proportions automatically */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .mascot-glow {
+    position: absolute;
+    width: 85%;
+    height: 85%;
+    background: radial-gradient(circle, rgba(39, 39, 42, 0.4) 0%, rgba(24, 24, 27, 0) 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Smooth transition class for the source swap with percentage sizing */
+  .mascot-image {
+    position: relative;
+    width: 75%; /* Sized dynamically using percentage */
+    height: auto;
+    z-index: 2;
+    image-rendering: pixelated;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+  }
+
+  .mascot-image.fade {
+    opacity: 0;
+  }
+
+  /* Shadcn-like interactive primary action button */
+  .btn-primary {
+    width: 100%;
+    background-color: #fafafa;
+    color: #09090b;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+  }
+  
+  .btn-primary:hover {
+    background-color: #f4f4f5;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  /* Secondary link aesthetics */
+  .link-secondary {
+    font-size: 13px;
+    color: #71717a;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .link-secondary:hover {
+    color: #a1a1aa;
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;">
+
+  <header style="display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;border-bottom:1px solid #18181b;flex-shrink:0;background-color:#09090b;">
+    <div style="display:flex;align-items:center;gap:24px;">
+      <img src="shrimp.gif" alt="CAMron" style="width:28px;height:28px;border-radius:50%;image-rendering:pixelated;border:1px solid #18181b;">
+      <nav style="display:flex;gap:18px;">
+        <a href="#" class="link-secondary" style="font-size:14px;">Centro de Controlo</a>
+        <a href="#" class="link-secondary" style="color:#fafafa;font-size:14px;font-weight:500;">Live</a>
+      </nav>
+    </div>
+    <div id="clock" style="font-size:13px;color:#a1a1aa;background-color:#09090b;border:1px solid #18181b;border-radius:6px;padding:4px 10px;font-variant-numeric:tabular-nums;font-family:monospace;"></div>
+  </header>
+
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">
+    
+    <div style="width:100%;max-width:400px;background-color:#09090b;border:1px solid #18181b;border-radius:8px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;">
+      
+      <div class="mascot-container">
+        <div class="mascot-glow"></div>
+        <img id="shrimp" src="shrimp.gif" alt="mascot" class="mascot-image">
+      </div>
+
+      <div style="margin-bottom:24px;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:500;color:#71717a;letter-spacing:0.02em;">Passo 1 de 3</p>
+        <h1 style="margin:0 0 8px;font-size:20px;font-weight:600;letter-spacing:-0.02em;color:#fafafa;">Gravar Software na Câmara</h1>
+        <p style="margin:0;font-size:14px;color:#a1a1aa;line-height:1.43;">Conecte a sua câmara ao dispositivo via cabo USB para configurar as credenciais de rede.</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <button id="confirmBtn" class="btn-primary" onclick="startCountdown()">
+          Já liguei a câmara
+        </button>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;border-top:1px solid #18181b;padding-top:16px;">
+          <a href="#" class="link-secondary">Voltar ao Dashboard</a>
+          <a href="#" class="link-secondary">Preciso de ajuda</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  // Dynamic Clock Script
+  function updateClock() {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const d = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    const t = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    document.getElementById('clock').textContent = `${d} ${t}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Hidden image node to pre-cache v2.gif so it loads immediately on click
+  const imgCache = new Image();
+  imgCache.src = "v2.gif";
+
+  // Countdown Handler (With smooth source transition)
+  let timer = null;
+  function startCountdown() {
+    if (timer) return;
+    const btn = document.getElementById('confirmBtn');
+    const mascot = document.getElementById('shrimp');
+    
+    // 1. Fade old GIF out
+    mascot.classList.add('fade');
+    
+    // 2. Change src and fade back in mid-way through animation
+    setTimeout(() => {
+      mascot.src = "v2.gif";
+      mascot.classList.remove('fade');
+    }, 250);
+    
+    // Update button to shadcn disabled state
+    btn.disabled = true;
+    btn.style.backgroundColor = '#09090b';
+    btn.style.color = '#71717a';
+    btn.style.border = '1px solid #18181b';
+    btn.style.cursor = 'not-allowed';
+    btn.style.transform = 'none';
+    
+    let s = 3;
+    btn.textContent = `A verificar ligação em (${s}s)`;
+    
+    timer = setInterval(() => {
+      s--;
+      if (s <= 0) {
+        clearInterval(timer);
+        btn.textContent = 'A processar…';
+      } else {
+        btn.textContent = `A verificar ligação em (${s}s)`;
+      }
+    }, 1000);
+  }
+</script>
+
+</body>
+</html>
