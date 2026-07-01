@@ -128,18 +128,19 @@ router.post("/compile/initiate", (req, res) => {
 
   try {
     if (finalCameraId) {
-      // Existing camera: fetch and update WiFi settings
+      // Existing camera: fetch, update WiFi settings, and reset api_key
       const camera = db.prepare("SELECT * FROM cameras WHERE id = ?").get(finalCameraId);
       if (!camera) {
         return res.status(404).json({ error: "Câmara não encontrada na base de dados." });
       }
-      finalApiKey = camera.api_key;
+      // Generate a new unique authentication token for this flash session
+      finalApiKey = crypto.randomBytes(32).toString("hex");
       finalName = camera.name;
       
       db.prepare(
-        "UPDATE cameras SET wifi_ssid = ?, wifi_pass = ?, updated_at = datetime('now') WHERE id = ?"
-      ).run(wifi_ssid, wifi_password, finalCameraId);
-      console.log(`[compiler] Re-flash iniciado para câmara existente: ${finalName} (${finalCameraId})`);
+        "UPDATE cameras SET wifi_ssid = ?, wifi_pass = ?, api_key = ?, updated_at = datetime('now') WHERE id = ?"
+      ).run(wifi_ssid, wifi_password, finalApiKey, finalCameraId);
+      console.log(`[compiler] Re-flash iniciado para câmara existente: ${finalName} (${finalCameraId}) com novo api_key`);
     } else {
       // New camera: generate credentials and insert to DB
       finalCameraId = crypto.randomUUID();
