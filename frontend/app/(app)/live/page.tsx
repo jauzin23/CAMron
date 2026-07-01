@@ -42,73 +42,9 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 interface Camera {
   id: string;
   name: string;
-  type: "real" | "fake";
-  unsplashUrl?: string;
-  /** For real cameras: the actual DB id used in the stream URL */
-  dbId?: string;
   flash_active?: boolean;
   last_seen?: string | null;
 }
-
-// Static fake cameras - always shown to fill the grid
-const FAKE_CAMERAS: Camera[] = [
-  {
-    id: "fake-1",
-    name: "CAM-02 (Corredor A)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1520038410233-7141be7e6f97?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "fake-2",
-    name: "CAM-03 (Entrada Principal)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "fake-3",
-    name: "CAM-04 (Sala de Servidores)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "fake-4",
-    name: "CAM-05 (Escritório Central)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "fake-5",
-    name: "CAM-06 (Parque de Estacionamento)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1506015391300-4802dc74de2e?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "fake-6",
-    name: "CAM-07 (Cais de Descarga)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "fake-7",
-    name: "CAM-08 (Corredor de Segurança)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1518364538800-6bcb3f25da49?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "fake-8",
-    name: "CAM-09 (Via Pública)",
-    type: "fake",
-    unsplashUrl:
-      "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=800&q=80",
-  },
-];
 
 // Layout definition types
 type LayoutNode =
@@ -128,9 +64,9 @@ interface EffectSettings {
   colorMode: "normal" | "night-vision" | "amber" | "thermal";
 }
 
-// Preset layouts
+// Preset layouts (empty templates)
 const PRESETS: Record<string, LayoutNode> = {
-  "1x1": { id: "root", type: "leaf", cameraId: "real-1" },
+  "1x1": { id: "root", type: "leaf", cameraId: null },
   "2x2": {
     id: "root-2x2",
     type: "group",
@@ -141,8 +77,8 @@ const PRESETS: Record<string, LayoutNode> = {
         type: "group",
         direction: "horizontal",
         children: [
-          { id: "c1", type: "leaf", cameraId: "real-1" },
-          { id: "c2", type: "leaf", cameraId: "fake-1" },
+          { id: "c1", type: "leaf", cameraId: null },
+          { id: "c2", type: "leaf", cameraId: null },
         ],
       },
       {
@@ -150,8 +86,8 @@ const PRESETS: Record<string, LayoutNode> = {
         type: "group",
         direction: "horizontal",
         children: [
-          { id: "c3", type: "leaf", cameraId: "fake-2" },
-          { id: "c4", type: "leaf", cameraId: "fake-3" },
+          { id: "c3", type: "leaf", cameraId: null },
+          { id: "c4", type: "leaf", cameraId: null },
         ],
       },
     ],
@@ -166,9 +102,9 @@ const PRESETS: Record<string, LayoutNode> = {
         type: "group",
         direction: "horizontal",
         children: [
-          { id: "grid1", type: "leaf", cameraId: "real-1" },
-          { id: "grid2", type: "leaf", cameraId: "fake-1" },
-          { id: "grid3", type: "leaf", cameraId: "fake-2" },
+          { id: "grid1", type: "leaf", cameraId: null },
+          { id: "grid2", type: "leaf", cameraId: null },
+          { id: "grid3", type: "leaf", cameraId: null },
         ],
       },
       {
@@ -176,9 +112,9 @@ const PRESETS: Record<string, LayoutNode> = {
         type: "group",
         direction: "horizontal",
         children: [
-          { id: "grid4", type: "leaf", cameraId: "fake-3" },
-          { id: "grid5", type: "leaf", cameraId: "fake-4" },
-          { id: "grid6", type: "leaf", cameraId: "fake-5" },
+          { id: "grid4", type: "leaf", cameraId: null },
+          { id: "grid5", type: "leaf", cameraId: null },
+          { id: "grid6", type: "leaf", cameraId: null },
         ],
       },
       {
@@ -186,9 +122,9 @@ const PRESETS: Record<string, LayoutNode> = {
         type: "group",
         direction: "horizontal",
         children: [
-          { id: "grid7", type: "leaf", cameraId: "fake-6" },
-          { id: "grid8", type: "leaf", cameraId: "fake-7" },
-          { id: "grid9", type: "leaf", cameraId: "fake-8" },
+          { id: "grid7", type: "leaf", cameraId: null },
+          { id: "grid8", type: "leaf", cameraId: null },
+          { id: "grid9", type: "leaf", cameraId: null },
         ],
       },
     ],
@@ -198,20 +134,40 @@ const PRESETS: Record<string, LayoutNode> = {
     type: "group",
     direction: "horizontal",
     children: [
-      { id: "large-left", type: "leaf", cameraId: "real-1" },
+      { id: "large-left", type: "leaf", cameraId: null },
       {
         id: "right-stack",
         type: "group",
         direction: "vertical",
         children: [
-          { id: "stack1", type: "leaf", cameraId: "fake-1" },
-          { id: "stack2", type: "leaf", cameraId: "fake-2" },
-          { id: "stack3", type: "leaf", cameraId: "fake-3" },
+          { id: "stack1", type: "leaf", cameraId: null },
+          { id: "stack2", type: "leaf", cameraId: null },
+          { id: "stack3", type: "leaf", cameraId: null },
         ],
       },
     ],
   },
 };
+
+// Helper to fill empty slots in a layout with real cameras sequentially
+function fillLayoutWithRealCams(node: LayoutNode, cameras: Camera[]): LayoutNode {
+  let cameraIndex = 0;
+  function traverse(n: LayoutNode): LayoutNode {
+    if (n.type === "leaf") {
+      const cam = cameras[cameraIndex];
+      cameraIndex++;
+      return {
+        ...n,
+        cameraId: cam ? cam.id : null,
+      };
+    }
+    return {
+      ...n,
+      children: n.children.map(traverse),
+    };
+  }
+  return traverse(node);
+}
 
 // Tree manipulation helpers
 function updateLeafCamera(
@@ -309,10 +265,11 @@ export default function LivePage() {
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasInitializedLayout, setHasInitializedLayout] = useState(false);
 
-  // Real cameras fetched from DB - prepended to the static fake list
+  // Real cameras fetched from DB
   const [realCameras, setRealCameras] = useState<Camera[]>([]);
-  const availableCameras: Camera[] = [...realCameras, ...FAKE_CAMERAS];
+  const availableCameras: Camera[] = realCameras;
 
   // Fetch real cameras from DB on mount and poll every 5 seconds to keep states in sync
   useEffect(() => {
@@ -320,17 +277,15 @@ export default function LivePage() {
       getCameras()
         .then((dbCams) => {
           const mapped: Camera[] = dbCams.map((c) => ({
-            id: `real-db-${c.id}`,
-            dbId: c.id,
+            id: c.id,
             name: c.name,
-            type: "real" as const,
             flash_active: c.flash_active === true || (c.flash_active as any) === 1,
             last_seen: c.last_seen,
           }));
           setRealCameras(mapped);
         })
         .catch(() => {
-          // Backend unreachable - silently fall back to fakes or keep existing
+          // Backend unreachable
         });
     };
 
@@ -339,23 +294,32 @@ export default function LivePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleToggleFlash = async (dbId: string) => {
-    const cam = realCameras.find((c) => c.dbId === dbId);
+  // Dynamically initialize layout if localStorage is empty once realCameras are fetched
+  useEffect(() => {
+    if (isLoaded && !hasInitializedLayout && realCameras.length > 0) {
+      const filledLayout = fillLayoutWithRealCams(PRESETS["2x2"], realCameras);
+      setLayout(filledLayout);
+      setHasInitializedLayout(true);
+    }
+  }, [realCameras, isLoaded, hasInitializedLayout]);
+
+  const handleToggleFlash = async (id: string) => {
+    const cam = realCameras.find((c) => c.id === id);
     if (!cam) return;
     const previousState = cam.flash_active;
 
     // Optimistic UI update
     setRealCameras((prev) =>
       prev.map((c) =>
-        c.dbId === dbId ? { ...c, flash_active: !previousState } : c
+        c.id === id ? { ...c, flash_active: !previousState } : c
       )
     );
 
     try {
-      const res = await toggleFlash(dbId);
+      const res = await toggleFlash(id);
       setRealCameras((prev) =>
         prev.map((c) =>
-          c.dbId === dbId ? { ...c, flash_active: res.flash_active } : c
+          c.id === id ? { ...c, flash_active: res.flash_active } : c
         )
       );
     } catch (err) {
@@ -363,7 +327,7 @@ export default function LivePage() {
       // Revert state on error
       setRealCameras((prev) =>
         prev.map((c) =>
-          c.dbId === dbId ? { ...c, flash_active: previousState } : c
+          c.id === id ? { ...c, flash_active: previousState } : c
         )
       );
     }
@@ -378,6 +342,7 @@ export default function LivePage() {
     if (savedLayout) {
       try {
         setLayout(JSON.parse(savedLayout));
+        setHasInitializedLayout(true);
       } catch (e) {
         console.error("Failed to parse saved layout", e);
       }
@@ -404,9 +369,12 @@ export default function LivePage() {
   }, [layout, layoutType, effects, isLoaded]);
 
   const handleApplyPreset = (type: string) => {
-    setLayout(PRESETS[type]);
+    const basePreset = PRESETS[type];
+    const filledLayout = fillLayoutWithRealCams(basePreset, realCameras);
+    setLayout(filledLayout);
     setLayoutType(type);
     setFullscreenId(null);
+    setHasInitializedLayout(true);
   };
 
   const handleSelectCamera = (nodeId: string, cameraId: string | null) => {
@@ -651,11 +619,8 @@ function CameraCell({
     setShowControls(false);
   };
 
-  // Resolve camera ID with support for legacy "real-1" mapping to first real camera
-  let camera = cameras.find((c) => c.id === cameraId);
-  if (!camera && cameraId === "real-1") {
-    camera = cameras.find((c) => c.type === "real");
-  }
+  // Resolve camera ID
+  const camera = cameras.find((c) => c.id === cameraId);
 
   useEffect(() => {
     setIsLive(false);
@@ -883,27 +848,9 @@ function CameraCell({
               )}
             </div>
           </div>
-        ) : camera.type === "real" ? (
-          <img
-            src={`${BACKEND_URL}/stream?id=${camera.dbId}&token=${TOKEN}&r=${retryCount}`}
-            alt={camera.name}
-            className={`w-full h-full object-contain transition-opacity duration-300 ease-out ${
-              isLive ? "opacity-100" : "opacity-0"
-            }`}
-            onLoad={() => {
-              setIsLive(true);
-              setIsLoading(false);
-              setHasError(false);
-            }}
-            onError={() => {
-              setIsLive(false);
-              setIsLoading(false);
-              setHasError(true);
-            }}
-          />
         ) : (
           <img
-            src={`${camera.unsplashUrl}&r=${retryCount}`}
+            src={`${BACKEND_URL}/stream?id=${camera.id}&token=${TOKEN}&r=${retryCount}`}
             alt={camera.name}
             className={`w-full h-full object-contain transition-opacity duration-300 ease-out ${
               isLive ? "opacity-100" : "opacity-0"
@@ -1001,7 +948,7 @@ function CameraCell({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {camera && camera.type === "real" && (
+        {camera && (
           <>
             <div className="w-px h-3.5 bg-zinc-800" />
             <Button
@@ -1013,7 +960,7 @@ function CameraCell({
                   ? "text-yellow-400 hover:text-yellow-300 hover:bg-yellow-950/20"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               } disabled:opacity-50 disabled:cursor-not-allowed`}
-              onClick={() => onToggleFlash(camera.dbId || "")}
+              onClick={() => onToggleFlash(camera.id)}
               title={camera.flash_active ? "Desligar Lanterna" : "Ligar Lanterna"}
             >
               <Flashlight className="h-3.5 w-3.5" />
