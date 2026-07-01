@@ -1,0 +1,141 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/lib/auth-context";
+
+export function LoginScreen() {
+  const { login } = useAuth();
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  function handlePinChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    // Only allow digits, max 6 characters
+    if (/^\d{0,6}$/.test(value)) {
+      setPin(value);
+      setError(null);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (pin.length < 4) {
+      setError("O PIN deve ter pelo menos 4 dígitos.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    const result = await login(pin);
+
+    if (!result.success) {
+      setError(result.error ?? "PIN incorreto. Tente novamente.");
+      setPin("");
+      inputRef.current?.focus();
+    }
+
+    setIsLoading(false);
+  }
+
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm">
+        {/* Logo + app name */}
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="650 550 750 750"
+            width={48}
+            height={48}
+            preserveAspectRatio="xMidYMid meet"
+            className="text-foreground"
+          >
+            <path
+              fill="currentColor"
+              d="M 1193.85 655.289 C 1198.44 626.162 1190.98 588.741 1196.23 559.264 C 1196.97 555.08 1212.74 551.733 1213.05 563.271 C 1213.83 591.881 1212.82 620.577 1213.51 649.196 C 1221.42 651.455 1226.51 653.4 1227.26 662.412 C 1228.38 673.204 1228.37 684.39 1228.2 695.259 C 1227.63 733.95 1231.57 736.314 1192.83 736.015 C 1192.48 756.585 1192.47 777.16 1192.79 797.73 L 855.917 797.665 L 855.911 735.985 C 820.569 736.456 820.402 736.062 820.586 699.331 C 820.653 685.887 819.813 671.696 821.613 658.403 C 822.229 653.853 831.412 650.438 835.015 648.421 C 836.438 641.268 835.333 635.613 835.508 628.423 C 836.035 606.775 834.146 584.223 835.947 562.732 C 836.34 558.045 838.655 557.252 842.017 554.947 C 846.248 555.018 852.395 555.947 852.897 561.083 C 855.137 584.026 853.106 607.975 853.726 631.076 C 853.892 637.235 853.087 644.428 854.499 650.069 L 856.038 650.841 C 857.886 649.442 861.512 637.28 863.077 633.298 C 874.163 605.087 897.667 581.487 926.04 570.184 C 935.856 566.387 946.134 563.919 956.604 562.847 C 975.027 560.896 1003.15 562.133 1022.65 561.92 C 1046.1 562.374 1069.96 560.795 1093.3 562.958 C 1131.98 566.54 1165.19 591.344 1182.1 625.952 C 1186.7 635.354 1190.03 645.549 1193.85 655.289 z"
+            />
+            <path
+              fill="black"
+              d="M 973.311 594.485 C 1007.03 594.38 1040.78 594.315 1074.5 594.27 C 1100 594.237 1120.42 600.366 1138.62 619.117 C 1147.59 628.302 1154.09 639.597 1157.54 651.958 C 1162.6 670.279 1160.72 742.979 1160.54 765.929 L 1075.5 765.873 L 887.889 765.944 L 887.781 707.851 C 887.741 674.017 884.422 645.601 909.848 618.95 C 928.524 599.374 947.533 595.222 973.311 594.485 z"
+            />
+            <path
+              fill="currentColor"
+              d="M 952.727 662.205 C 975.966 661.481 986.422 674.293 988.42 696.336 C 977.691 690.213 975.045 689.04 962.871 687.023 C 946.04 686.574 940.291 688.681 925.572 696.337 C 928.123 677.398 933.024 667.059 952.727 662.205 z"
+            />
+            <path
+              fill="currentColor"
+              d="M 1087.82 662.197 C 1112.13 661.612 1120.29 675.079 1123.68 696.98 C 1114.02 690.587 1110.22 688.891 1098.86 686.911 C 1092.45 686.758 1080.95 686.867 1074.98 689.192 C 1070.57 690.912 1066.51 693.996 1061.41 695.527 L 1060.35 694.038 C 1060.37 677.242 1072.11 665.849 1087.82 662.197 z"
+            />
+            <path
+              fill="currentColor"
+              d="M 1328.11 661.451 C 1331.24 662.305 1353.01 673.433 1357.17 675.494 C 1346.65 693.985 1336.36 715.807 1326.77 734.971 L 1280.24 827.408 C 1238.95 909.44 1195.13 994.405 1155.61 1076.92 C 1178.7 1099.65 1184.52 1119.65 1180.67 1151.36 C 1136.67 1127.06 1089.71 1103.24 1045.09 1079.7 C 1071.9 1057.99 1092.46 1052.82 1125.96 1060.55 C 1160.2 993.115 1195.33 925.276 1228.67 857.435 C 1198.78 856.362 1162.84 857.31 1132.47 857.309 L 945.569 857.299 C 959.305 893.979 975.121 945.29 998.266 976.434 C 1040.26 1032.93 1072.39 934.9 1085.29 910.458 L 1085.9 909.333 C 1094.65 903.901 1114.74 898.132 1125.33 894.912 C 1123.15 901.484 1120.16 908.318 1117.49 914.756 C 1102.73 951.55 1082.91 1007.11 1042.89 1022.46 C 1029.98 1027.52 1015.57 1027.1 1002.97 1021.31 C 957.001 1000.49 927.591 904.052 910.258 857.122 C 882.973 857.309 855.686 857.338 828.4 857.21 C 846.359 900.831 867.642 947.249 887.055 990.376 L 938.243 1105.45 C 926.778 1106.64 915.282 1107.51 903.768 1108.07 C 899.782 1099.9 895.824 1090.92 892.233 1082.56 C 855.308 996.546 813.79 911.297 777.845 824.961 L 1244.73 824.924 C 1251.97 812.853 1263.29 788.627 1270.18 775.069 C 1289.29 737.094 1308.6 699.221 1328.11 661.451 z"
+            />
+            <path
+              fill="currentColor"
+              d="M 684.995 975.75 C 687.522 979.919 691.568 989.222 694.236 994.355 C 701.461 1008.54 709.878 1022.08 719.396 1034.84 C 790.394 1128.95 931.726 1168.88 1030.48 1093.66 C 1077.92 1117.24 1128.5 1145.33 1175.52 1170.41 C 1168.87 1190.87 1160.08 1208.62 1145.56 1224.67 C 1120.11 1252.88 1085.43 1271.1 1047.76 1276.05 C 1038.91 1277.28 1027.02 1277.52 1017.92 1277.93 C 1020.35 1277.07 1022.74 1276.11 1025.09 1275.05 C 1062.7 1257.61 1090.18 1228.01 1103.99 1189.03 C 1094.12 1203.64 1082.09 1216.65 1068.29 1227.62 C 1032.55 1256.19 993.167 1267.69 947.761 1262.76 C 936.367 1262.07 915.496 1257.07 905.059 1253.86 C 953.809 1238.81 987.665 1223.43 1024.06 1186.43 C 971.187 1218.57 926.859 1234.25 862.795 1228.06 C 830.218 1224.92 783.262 1174.39 763.299 1148.86 C 784.684 1166.06 819.154 1180.92 845.885 1186.4 C 897.192 1196.87 950.556 1186.4 994.107 1157.33 C 978.126 1162.89 962.501 1168.45 945.793 1171.55 C 822.427 1194.37 706.837 1093.47 684.995 975.75 z"
+            />
+          </svg>
+          <h1 className="text-xl font-semibold tracking-tight">CAMron</h1>
+          <p className="text-sm text-muted-foreground">Sistema de Vigilância</p>
+        </div>
+
+        {/* PIN form */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Acesso Restrito</CardTitle>
+            <CardDescription>
+              Introduza o seu PIN para aceder ao painel de controlo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="pin-input">PIN</Label>
+                <Input
+                  id="pin-input"
+                  ref={inputRef}
+                  type="password"
+                  inputMode="numeric"
+                  pattern="\d*"
+                  placeholder="4 a 6 dígitos"
+                  value={pin}
+                  onChange={handlePinChange}
+                  autoComplete="current-password"
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? "pin-error" : undefined}
+                  disabled={isLoading}
+                />
+                {error && (
+                  <p id="pin-error" className="text-sm text-destructive-foreground">
+                    {error}
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || pin.length < 4}
+              >
+                {isLoading ? "A verificar…" : "Entrar"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

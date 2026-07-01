@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/page-header";
 import {
   Loader2,
@@ -34,10 +35,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCameras, toggleFlash } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// Security camera configurations
-const TOKEN =
-  "fd70b9def358ed9d30406a5a63b0e6d725863f09f801291e0952399e1b8ddb85";
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+
 
 interface Camera {
   id: string;
@@ -604,6 +603,7 @@ function CameraCell({
   filterStyle,
   onToggleFlash,
 }: CameraCellProps) {
+  const { getToken } = useAuth();
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -850,7 +850,7 @@ function CameraCell({
           </div>
         ) : (
           <img
-            src={`${BACKEND_URL}/stream?id=${camera.id}&token=${TOKEN}&r=${retryCount}`}
+            src={`${BACKEND_URL}/stream?id=${camera.id}&token=${getToken()}&r=${retryCount}`}
             alt={camera.name}
             className={`w-full h-full object-contain transition-opacity duration-300 ease-out ${
               isLive ? "opacity-100" : "opacity-0"

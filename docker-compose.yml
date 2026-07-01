@@ -20,6 +20,9 @@ services:
       - HOST_IP=${HOST_IP}
       - ARDUINO_CLI_PATH=/usr/local/bin/arduino-cli
       - PUBLIC_PORT=${FRONTEND_PORT:-3005}
+      - APP_PIN=${APP_PIN:-1234}
+      - JWT_SECRET=${JWT_SECRET:-HIEVERYONE}
+      - JWT_EXPIRY=${JWT_EXPIRY:-15m}
     volumes:
       - backend-data:/app/data
     restart: unless-stopped
