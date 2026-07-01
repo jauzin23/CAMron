@@ -14,7 +14,6 @@
 #include "esp32-hal-log.h"
 #endif
 
-// ── MJPEG multipart boundary ─────────────────────────────────
 #define PART_BOUNDARY "123456789000000000000987654321"
 static const char *_STREAM_CONTENT_TYPE =
     "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
@@ -26,7 +25,6 @@ static const char *_STREAM_PART =
 static httpd_handle_t stream_httpd = NULL;
 static httpd_handle_t control_httpd = NULL;
 
-// ── Bearer token validation ───────────────────────────────────
 // Returns true if the request carries the correct bearer token.
 static bool check_bearer(httpd_req_t *req) {
   char auth_buf[80];
@@ -48,7 +46,6 @@ static esp_err_t send_401(httpd_req_t *req) {
   return ESP_FAIL;
 }
 
-// ── Stream handler ────────────────────────────────────────────
 static esp_err_t stream_handler(httpd_req_t *req) {
   // ❶ Auth gate - first thing, no exceptions
   if (!check_bearer(req)) {
@@ -163,13 +160,12 @@ static esp_err_t flash_handler(httpd_req_t *req) {
   return ESP_OK;
 }
 
-// ── Catch-all handler - rejects everything that isn't /stream ─
+// rejects everything that isn't /stream
 // Registered as a wildcard URI so stray requests get 401, not 404.
 static esp_err_t reject_handler(httpd_req_t *req) {
   return send_401(req);
 }
 
-// ── Public entry point ────────────────────────────────────────
 void startCameraServer() {
   // 1. Control server (port 80)
   httpd_config_t control_config = HTTPD_DEFAULT_CONFIG();

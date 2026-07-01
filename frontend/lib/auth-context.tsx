@@ -1,11 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 const SESSION_KEY = "camron_jwt";
-
-// ── Types ────────────────────────────────────────────────────────────────────
 
 interface AuthState {
   token: string | null;
@@ -19,11 +23,7 @@ interface AuthContextValue extends AuthState {
   getToken: () => string | null;
 }
 
-// ── Context ──────────────────────────────────────────────────────────────────
-
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-// ── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -50,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) {
           setState({ token: stored, isAuthenticated: true, isLoading: false });
         } else {
-          // Token expired or invalid — clear it
           sessionStorage.removeItem(SESSION_KEY);
           setState({ token: null, isAuthenticated: false, isLoading: false });
         }
@@ -70,30 +69,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     window.addEventListener("camron:logout", handleForcedLogout);
-    return () => window.removeEventListener("camron:logout", handleForcedLogout);
+    return () =>
+      window.removeEventListener("camron:logout", handleForcedLogout);
   }, []);
 
-  const login = useCallback(async (pin: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      });
+  const login = useCallback(
+    async (pin: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if (!res.ok) {
-        return { success: false, error: data.error ?? "Erro de autenticação" };
+        if (!res.ok) {
+          return {
+            success: false,
+            error: data.error ?? "Erro de autenticação",
+          };
+        }
+
+        sessionStorage.setItem(SESSION_KEY, data.token);
+        setState({
+          token: data.token,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return { success: true };
+      } catch {
+        return { success: false, error: "Não foi possível ligar ao servidor" };
       }
-
-      sessionStorage.setItem(SESSION_KEY, data.token);
-      setState({ token: data.token, isAuthenticated: true, isLoading: false });
-      return { success: true };
-    } catch {
-      return { success: false, error: "Não foi possível ligar ao servidor" };
-    }
-  }, []);
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     sessionStorage.removeItem(SESSION_KEY);
@@ -110,8 +120,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-// ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);

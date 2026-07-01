@@ -6,8 +6,6 @@
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 const SESSION_KEY = "camron_jwt";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return sessionStorage.getItem(SESSION_KEY);
@@ -26,7 +24,10 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
  * A drop-in replacement for fetch() that automatically injects the JWT token
  * and handles 401 errors by dispatching the camron:logout event.
  */
-export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authFetch(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
   const token = getToken();
   const headers = new Headers(options.headers);
   if (token) {
@@ -44,12 +45,13 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 401) {
-    // Token expired or invalid — trigger a global logout event
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("camron:logout"));
     }
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error ?? "Sessão expirada. Introduza o PIN novamente.");
+    throw new Error(
+      data.error ?? "Sessão expirada. Introduza o PIN novamente.",
+    );
   }
   if (!res.ok) {
     const data = await res.json().catch(() => ({ error: res.statusText }));
@@ -58,7 +60,6 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
-// ── Types ────────────────────────────────────────────────────────────────────
 
 export type Camera = {
   id: string;
@@ -73,7 +74,6 @@ export type Camera = {
   wifi_pass?: string | null;
 };
 
-// ── Camera endpoints ─────────────────────────────────────────────────────────
 
 export async function getCameras(): Promise<Camera[]> {
   const res = await fetch(`${BACKEND_URL}/api/cameras`, {

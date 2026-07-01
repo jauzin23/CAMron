@@ -5,8 +5,6 @@ import { AppHeader } from "@/components/app-header";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { LoginScreen } from "@/components/login-screen";
 
-// ── Inner layout (needs auth context) ────────────────────────────────────────
-
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -33,7 +31,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Root layout ───────────────────────────────────────────────────────────────
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
