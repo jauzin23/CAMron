@@ -33,7 +33,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { type Camera } from "@/lib/api";
+import { type Camera, authFetch } from "@/lib/api";
 
 interface CameraFlasherProps {
   camera?: Camera;
@@ -185,7 +185,7 @@ export function CameraFlasher({
     if (isMounted) {
       const fetchNetworkInfo = async () => {
         try {
-          const res = await fetch(`${BACKEND_URL}/api/network-info`);
+          const res = await authFetch(`${BACKEND_URL}/api/network-info`);
           if (res.ok) {
             const data = await res.json();
             setBackendIp(data.ip);
@@ -197,7 +197,7 @@ export function CameraFlasher({
 
       const fetchCameras = async () => {
         try {
-          const res = await fetch(`${BACKEND_URL}/api/cameras`);
+          const res = await authFetch(`${BACKEND_URL}/api/cameras`);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data)) {
@@ -303,7 +303,7 @@ export function CameraFlasher({
       if (detectedId) {
         console.log("Handshake bem-sucedido! ID Detetado:", detectedId);
         try {
-          const res = await fetch(`${BACKEND_URL}/api/cameras/${detectedId}`);
+          const res = await authFetch(`${BACKEND_URL}/api/cameras/${detectedId}`);
           if (res.ok) {
             const existingCamera = await res.json();
             if (existingCamera && existingCamera.id) {
@@ -400,7 +400,7 @@ export function CameraFlasher({
     setStep("compiling");
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/compile/initiate`, {
+      const response = await authFetch(`${BACKEND_URL}/api/compile/initiate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -422,8 +422,10 @@ export function CameraFlasher({
       setCameraId(generatedId);
 
       // Open SSE stream for compilation logs
+      // EventSource does not support custom headers, so the JWT is passed via ?token=
+      const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
       const eventSource = new EventSource(
-        `${BACKEND_URL}/api/compile/stream/${generatedId}`,
+        `${BACKEND_URL}/api/compile/stream/${generatedId}?token=${encodeURIComponent(sseToken)}`,
       );
 
       eventSource.addEventListener("complete", (event: any) => {
@@ -438,7 +440,7 @@ export function CameraFlasher({
           "Ocorreu um erro a preparar o software da câmara. Tente de novo.",
         );
         setStep("failed");
-        void fetch(`${BACKEND_URL}/api/cleanup/${generatedId}`, {
+        void authFetch(`${BACKEND_URL}/api/cleanup/${generatedId}`, {
           method: "POST",
         }).catch(() => {});
       });
@@ -471,7 +473,7 @@ export function CameraFlasher({
       const fileArray = await Promise.all(
         filesToFlash.map(async (fileInfo) => {
           const downloadUrl = `${BACKEND_URL}/api/download/${targetCameraId}/${fileInfo.name}`;
-          const res = await fetch(downloadUrl);
+          const res = await authFetch(downloadUrl);
           if (!res.ok) {
             throw new Error(`Falha ao obter ficheiro ${fileInfo.name}.`);
           }
@@ -485,7 +487,7 @@ export function CameraFlasher({
 
       // Trigger asynchronous folder cleanup on server
       try {
-        void fetch(`${BACKEND_URL}/api/cleanup/${targetCameraId}`, {
+        void authFetch(`${BACKEND_URL}/api/cleanup/${targetCameraId}`, {
           method: "POST",
         });
       } catch (cleanupErr) {}
@@ -671,7 +673,7 @@ export function CameraFlasher({
 
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const res = await fetch(
+        const res = await authFetch(
           `${BACKEND_URL}/api/confirm-status/${targetCameraId}`,
         );
         if (res.ok) {
@@ -698,7 +700,7 @@ export function CameraFlasher({
 
   const handleResetWizard = () => {
     if (cameraId) {
-      void fetch(`${BACKEND_URL}/api/cleanup/${cameraId}`, { method: "POST" });
+      void authFetch(`${BACKEND_URL}/api/cleanup/${cameraId}`, { method: "POST" });
     }
     setErrorMsg("");
     setStep("connect");

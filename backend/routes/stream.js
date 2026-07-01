@@ -4,9 +4,9 @@ const express = require("express");
 const http = require("http");
 
 const db = require("../db/connection");
-const { verifyBearer } = require("../middleware/auth");
 
 const router = express.Router();
+
 
 const STREAM_PORT = process.env.TEST_STREAM_PORT
   ? parseInt(process.env.TEST_STREAM_PORT)
@@ -70,9 +70,8 @@ function cleanupStream(camId) {
  */
 // GET /stream
 // Proxies the MJPEG stream from the camera (multiplexed).
-// Reads camera IP from DB. Bearer required.
+// Reads camera IP from DB. JWT session required (enforced by server.js).
 router.get("/", (req, res) => {
-  if (!verifyBearer(req, res)) return;
 
   // Try ?id= param, or fall back to first camera in DB
   let cam;
