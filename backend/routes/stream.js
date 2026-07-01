@@ -42,6 +42,32 @@ function cleanupStream(camId) {
   delete activeStreams[camId];
 }
 
+/**
+ * @swagger
+ * /stream:
+ *   get:
+ *     summary: Proxies the camera video stream
+ *     tags: [Stream]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Camera ID (optional, defaults to first camera)
+ *     responses:
+ *       200:
+ *         description: Video stream (MJPEG)
+ *         content:
+ *           multipart/x-mixed-replace:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       503:
+ *         description: No cameras registered
+ */
 // GET /stream
 // Proxies the MJPEG stream from the camera (multiplexed).
 // Reads camera IP from DB. Bearer required.
@@ -194,115 +220,5 @@ router.get("/", (req, res) => {
   });
 });
 
-// GET /viewer
-// Minimal HTML viewer served from backend. LAN-only diagnostic tool.
-router.get("/viewer", (req, res) => {
-  const CAMERA_BEARER_TOKEN = process.env.CAMERA_BEARER_TOKEN;
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CAMron Live Viewer</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: #111;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      font-family: system-ui, sans-serif;
-      color: #eee;
-    }
-    #status { margin-bottom: 12px; font-size: 14px; color: #aaa; }
-    #stream { max-width: 100%; border: 1px solid #333; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <p id="status">Connecting…</p>
-  <img id="stream" alt="Camera stream" />
-
-  <script>
-    const TOKEN = "${CAMERA_BEARER_TOKEN}";
-
-    async function startStream() {
-      const statusEl = document.getElementById("status");
-      const imgEl    = document.getElementById("stream");
-
-      try {
-        const resp = await fetch("/stream", {
-          headers: { Authorization: "Bearer " + TOKEN },
-        });
-
-        if (!resp.ok) {
-          const body = await resp.text();
-          statusEl.textContent = "Error " + resp.status + ": " + body;
-          return;
-        }
-
-        statusEl.textContent = "Live";
-
-        const reader = resp.body.getReader();
-        let buffer   = new Uint8Array(0);
-        const SOI    = [0xFF, 0xD8];
-        const EOI    = [0xFF, 0xD9];
-
-        function append(a, b) {
-          const c = new Uint8Array(a.length + b.length);
-          c.set(a); c.set(b, a.length);
-          return c;
-        }
-
-        function findSeq(arr, seq, from = 0) {
-          outer: for (let i = from; i <= arr.length - seq.length; i++) {
-            for (let j = 0; j < seq.length; j++) {
-              if (arr[i + j] !== seq[j]) continue outer;
-            }
-            return i;
-          }
-          return -1;
-        }
-
-        async function pump() {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) { statusEl.textContent = "Stream ended"; break; }
-
-            buffer = append(buffer, value);
-
-            let soiIdx = findSeq(buffer, SOI);
-            if (soiIdx === -1) { buffer = new Uint8Array(0); continue; }
-
-            let eoiIdx = findSeq(buffer, EOI, soiIdx + 2);
-            if (eoiIdx === -1) continue;
-
-            const frame = buffer.slice(soiIdx, eoiIdx + 2);
-            buffer      = buffer.slice(eoiIdx + 2);
-
-            const blob = new Blob([frame], { type: "image/jpeg" });
-            const url  = URL.createObjectURL(blob);
-            const prev = imgEl.src;
-            imgEl.src  = url;
-            if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
-          }
-        }
-
-        pump().catch(err => {
-          statusEl.textContent = "Stream error: " + err.message;
-        });
-
-      } catch (err) {
-        document.getElementById("status").textContent = "Fetch failed: " + err.message;
-      }
-    }
-
-    startStream();
-  </script>
-</body>
-</html>`);
-});
 
 module.exports = router;

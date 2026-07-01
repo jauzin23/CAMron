@@ -70,6 +70,16 @@ setInterval(() => {
   }
 }, 5000);
 
+/**
+ * @swagger
+ * /api/cameras:
+ *   get:
+ *     summary: Retrieves a list of all cameras
+ *     tags: [Cameras]
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 // GET /api/cameras
 router.get("/", (req, res) => {
   try {
@@ -89,6 +99,25 @@ router.get("/", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/cameras:
+ *   post:
+ *     summary: Creates a new camera
+ *     tags: [Cameras]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Camera created successfully
+ */
 // POST /api/cameras
 router.post("/", (req, res) => {
   const { name } = req.body;
@@ -117,6 +146,24 @@ router.post("/", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/cameras/{id}:
+ *   get:
+ *     summary: Gets details of a specific camera
+ *     tags: [Cameras]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
+ *       404:
+ *         description: Camera not found
+ */
 // GET /api/cameras/:id
 router.get("/:id", (req, res) => {
   try {
@@ -131,6 +178,31 @@ router.get("/:id", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/cameras/{id}:
+ *   put:
+ *     summary: Updates an existing camera
+ *     tags: [Cameras]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Camera updated successfully
+ */
 // PUT /api/cameras/:id
 router.put("/:id", (req, res) => {
   const { name } = req.body;
@@ -160,6 +232,22 @@ router.put("/:id", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/cameras/{id}:
+ *   delete:
+ *     summary: Deletes a camera
+ *     tags: [Cameras]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Camera deleted successfully
+ */
 // DELETE /api/cameras/:id
 router.delete("/:id", (req, res) => {
   try {
@@ -176,6 +264,29 @@ router.delete("/:id", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/cameras/register:
+ *   post:
+ *     summary: Registers a camera with its IP
+ *     tags: [Cameras]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *               ip:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 // POST /api/cameras/register
 // Called by ESP32 on boot to announce its IP. Authenticates with its unique api_key.
 router.post("/register", (req, res) => {
@@ -222,6 +333,22 @@ router.post("/register", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/cameras/{id}/flash:
+ *   post:
+ *     summary: Toggles the camera flash state
+ *     tags: [Cameras]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Flash toggled successfully
+ */
 // POST /api/cameras/:id/flash
 router.post("/:id/flash", (req, res) => {
   const { id } = req.params;
