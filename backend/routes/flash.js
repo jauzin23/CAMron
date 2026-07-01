@@ -60,12 +60,60 @@ if (!fs.existsSync(tempDirRoot)) {
   fs.mkdirSync(tempDirRoot, { recursive: true });
 }
 
+/**
+ * @swagger
+ * /api/network-info:
+ *   get:
+ *     summary: Gets network information (IP and Port)
+ *     tags: [Network]
+ *     responses:
+ *       200:
+ *         description: Success
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ip:
+ *                   type: string
+ *                 port:
+ *                   type: integer
+ */
 // GET /api/network-info
 router.get("/network-info", (req, res) => {
   // Use PUBLIC_PORT if set (e.g., public gateway port in Docker), fallback to internal PORT
   res.json({ ip: DETECTED_IP, port: process.env.PUBLIC_PORT || process.env.PORT || 3000 });
 });
 
+/**
+ * @swagger
+ * /api/compile/initiate:
+ *   post:
+ *     summary: Initiates the firmware compilation process for a camera
+ *     tags: [Compile]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               wifi_ssid:
+ *                 type: string
+ *               wifi_password:
+ *                 type: string
+ *               custom_host:
+ *                 type: string
+ *               custom_port:
+ *                 type: integer
+ *               cameraId:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Compilation initiated successfully
+ */
 // POST /api/compile/initiate
 router.post("/compile/initiate", (req, res) => {
   const { wifi_ssid, wifi_password, custom_host, custom_port, cameraId, name } = req.body;
@@ -125,6 +173,22 @@ router.post("/compile/initiate", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/compile/stream/{cameraId}:
+ *   get:
+ *     summary: Stream Server-Sent Events (SSE) for compilation logs
+ *     tags: [Compile]
+ *     parameters:
+ *       - in: path
+ *         name: cameraId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Event stream (text/event-stream)
+ */
 // GET /api/compile/stream/:cameraId
 router.get("/compile/stream/:cameraId", (req, res) => {
   const { cameraId } = req.params;
@@ -273,6 +337,29 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/download/{cameraId}/{filename}:
+ *   get:
+ *     summary: Downloads a compiled file
+ *     tags: [Compile]
+ *     parameters:
+ *       - in: path
+ *         name: cameraId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Binary file
+ *       404:
+ *         description: File not found
+ */
 // GET /api/download/:cameraId/:filename
 router.get("/download/:cameraId/:filename", (req, res) => {
   const { cameraId, filename } = req.params;
@@ -299,6 +386,31 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/confirm-flash:
+ *   post:
+ *     summary: Confirms successful camera flash
+ *     tags: [Compile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Confirmation received
+ */
 // POST /api/confirm-flash
 // Called by the ESP32 on its first boot to report success
 router.post("/confirm-flash", (req, res) => {
@@ -350,6 +462,22 @@ router.post("/confirm-flash", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/confirm-status/{cameraId}:
+ *   get:
+ *     summary: Checks if the camera has confirmed the flash
+ *     tags: [Compile]
+ *     parameters:
+ *       - in: path
+ *         name: cameraId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Confirmation status
+ */
 // GET /api/confirm-status/:cameraId
 router.get("/confirm-status/:cameraId", (req, res) => {
   const { cameraId } = req.params;
@@ -385,6 +513,22 @@ router.get("/confirm-status/:cameraId", (req, res) => {
   res.json({ confirmed: false });
 });
 
+/**
+ * @swagger
+ * /api/cleanup/{cameraId}:
+ *   post:
+ *     summary: Cleans up temporary compilation files
+ *     tags: [Compile]
+ *     parameters:
+ *       - in: path
+ *         name: cameraId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 // Cleanup Endpoint
 router.post("/cleanup/:cameraId", (req, res) => {
   const { cameraId } = req.params;

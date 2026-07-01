@@ -11,6 +11,8 @@ const streamRouter = require("./routes/stream");
 const flashRouter = require("./routes/flash");
 const path = require("path");
 const fs = require("fs");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./docs/swagger");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +49,7 @@ app.use(cors());
 app.use(express.json());
 
 // Setup routes
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/cameras", camerasRouter);
 app.use("/api", flashRouter);
 app.use("/stream", streamRouter);
@@ -61,7 +64,6 @@ app.listen(PORT, () => {
   console.log(
     `  Stream   : http://localhost:${PORT}/stream (bearer required)`,
   );
-  console.log(`  Viewer   : http://localhost:${PORT}/stream/viewer`);
   console.log(
     `  Register : POST http://localhost:${PORT}/api/cameras/register (bearer required)`,
   );
