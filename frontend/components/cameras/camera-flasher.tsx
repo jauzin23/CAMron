@@ -700,24 +700,13 @@ export function CameraFlasher({
   };
 
   const handleResetWizard = () => {
-    void stopSerialLogs();
     if (cameraId) {
       void fetch(`${BACKEND_URL}/api/cleanup/${cameraId}`, { method: "POST" });
     }
     setErrorMsg("");
     setStep("connect");
-    // Only reset camera identity if we didn't get camera passed as props
-    if (!camera) {
-      setCameraId(null);
-      setWifiSsid("");
-      setWifiPassword("");
-      setIsReflash(false);
-      setDetectedCameraName("");
-      setNewCameraName("");
-    }
     setFlashProgress(0);
     setVerificationStatus("waiting");
-    setVerifiedMessage("");
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
@@ -751,8 +740,7 @@ export function CameraFlasher({
                   1. Ligar o cabo USB
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                  Ligue a sua câmara {detectedCameraName || cameraName} ao
-                  computador utilizando o cabo USB.
+                  Ligue a sua câmara "{cameraName}" ao computador utilizando o cabo USB.
                 </p>
               </div>
 
@@ -815,21 +803,21 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  {isReflash
-                    ? `Reconfigurar câmara "${detectedCameraName || cameraName}"`
-                    : "2. Ligar à Internet"}
+                  {camera?.wifi_ssid
+                    ? `Reconfigurar câmara "${cameraName}"`
+                    : `Configurar câmara "${cameraName}"`}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                  {isReflash
-                    ? "Deteção automática concluída! Confirme ou atualize as definições de rede abaixo."
+                  {camera?.wifi_ssid
+                    ? "Atualize as definições de rede da sua câmara."
                     : "Introduza os dados da sua rede Wi-Fi para que a câmara se possa ligar."}
                 </p>
               </div>
 
               {/* Compact Form Layout */}
               <div className="flex flex-col gap-3 w-full max-w-xs text-left">
-                {/* Import settings dropdown (only show if not already flashing a specific camera and other cameras exist) */}
-                {!camera && !isReflash && allCameras.length > 0 && (
+                {/* Import settings dropdown (only show if other cameras exist) */}
+                {allCameras.filter((c) => c.id !== cameraId).length > 0 && (
                   <div className="flex flex-col gap-1.5 mb-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground pl-0.5">
                       Importar definições de outra câmara
@@ -840,44 +828,22 @@ export function CameraFlasher({
                         if (selected) {
                           setWifiSsid(selected.wifi_ssid || "");
                           setWifiPassword(selected.wifi_pass || "");
-                          toast.success(
-                            `Definições de "${selected.name}" importadas!`,
-                          );
                         }
                       }}
                     >
-                      <SelectTrigger className="w-full h-10 text-sm bg-background border-input text-foreground cursor-pointer">
+                      <SelectTrigger className="h-10 text-sm bg-background border-input text-foreground focus:ring-primary">
                         <SelectValue placeholder="Selecione uma câmara..." />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border-border text-foreground">
-                        {allCameras.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} ({c.wifi_ssid})
-                          </SelectItem>
-                        ))}
+                        {allCameras
+                          .filter((c) => c.id !== cameraId)
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name} ({c.wifi_ssid})
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                )}
-
-                {/* Camera Name Input (only for new cameras) */}
-                {!camera && !isReflash && (
-                  <div className="flex flex-col gap-1.5">
-                    <Label
-                      htmlFor="camera-name-input"
-                      className="text-xs font-semibold text-muted-foreground pl-0.5"
-                    >
-                      Nome da Câmara
-                    </Label>
-                    <Input
-                      id="camera-name-input"
-                      placeholder="Ex: Câmara da Cozinha"
-                      value={newCameraName}
-                      onChange={(e) => setNewCameraName(e.target.value)}
-                      maxLength={32}
-                      className="h-10 text-sm bg-background border-input text-foreground focus-visible:ring-primary"
-                      required
-                    />
                   </div>
                 )}
 
@@ -1015,7 +981,7 @@ export function CameraFlasher({
           {step === "flashing" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                <Cpu className="h-10 w-10 text-primary animate-pulse" />
+                <Cpu className="h-10 w-10 text-primary" />
               </div>
 
               <div className="flex flex-col gap-2">
@@ -1052,7 +1018,6 @@ export function CameraFlasher({
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
                   <RefreshCw className="h-10 w-10 text-primary animate-spin" />
                 </div>
-                <div className="absolute inset-0 rounded-full border-2 border-primary/10 animate-ping" />
               </div>
 
               <div className="flex flex-col gap-2">
@@ -1084,7 +1049,6 @@ export function CameraFlasher({
                     </Button>
                     <Button
                       onClick={() => {
-                        void stopSerialLogs();
                         setStep("success");
                       }}
                       className="flex-1 text-xs cursor-pointer"
@@ -1141,14 +1105,13 @@ export function CameraFlasher({
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
                   <CheckCircle className="h-10 w-10 text-emerald-500" />
                 </div>
-                <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 animate-ping" />
               </div>
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  Tudo pronto!
+                  Configuração Concluída!
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
                   A sua câmara foi configurada com sucesso e já está ligada à
                   rede sem fios.
                 </p>

@@ -22,7 +22,7 @@ export function DeviceRestrictedPage({
     <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-3.5rem)] bg-background">
       <WarpBackground className="w-full max-w-lg border border-zinc-800/60 bg-zinc-950/70 p-8 md:p-12 rounded-2xl shadow-2xl backdrop-blur-md overflow-hidden flex flex-col items-center text-center">
         <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800/80 mb-6 text-rose-500 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
-          <MonitorX className="h-8 w-8 animate-pulse" />
+          <MonitorX className="h-8 w-8" />
         </div>
 
         <HyperText

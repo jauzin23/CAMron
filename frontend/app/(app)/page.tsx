@@ -221,8 +221,8 @@ export default function ControlCenterPage() {
               size="sm"
               variant="outline"
               className={cn(
-                "h-7 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-500 transition-colors shadow-xs px-2",
-                !isDesktop ? "opacity-50 cursor-not-allowed" : "hover:bg-amber-500 hover:text-zinc-950 cursor-pointer"
+                "h-7 text-xs px-2",
+                isDesktop && "cursor-pointer"
               )}
               onClick={() => isDesktop && router.push(`/cameras/flash?id=${camera.id}`)}
               disabled={!isDesktop}
@@ -416,33 +416,18 @@ export default function ControlCenterPage() {
           filterColumnKey="name"
           filterPlaceholder="Pesquisar câmara..."
           actionButton={
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                className={cn(
-                  "h-9 gap-2 font-medium border-zinc-800 text-zinc-300 w-full sm:w-auto",
-                  (!isDesktop || camerasLoading || cameras.length === 0) ? "opacity-50 cursor-not-allowed" : "hover:bg-zinc-900 cursor-pointer"
-                )}
-                onClick={() => isDesktop && router.push("/cameras/flash")}
-                disabled={camerasLoading || cameras.length === 0 || !isDesktop}
-                title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
-              >
-                <Cpu className="h-4 w-4 text-primary" />
-                Gravar Firmware (USB)
-              </Button>
-              <Button
-                className={cn(
-                  "h-9 gap-2 font-medium w-full sm:w-auto",
-                  (!isDesktop || camerasLoading) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                )}
-                onClick={() => isDesktop && router.push("/cameras/new")}
-                disabled={camerasLoading || !isDesktop}
-                title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar Câmara
-              </Button>
-            </div>
+            <Button
+              className={cn(
+                "h-9 gap-2 font-medium w-full sm:w-auto",
+                (!isDesktop || camerasLoading) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+              )}
+              onClick={() => isDesktop && router.push("/cameras/new")}
+              disabled={camerasLoading || !isDesktop}
+              title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar Câmara
+            </Button>
           }
         />
       </div>
