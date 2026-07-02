@@ -41,7 +41,7 @@ export function WizardStepDone({
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <Button onClick={() => router.push("/")} className="gap-2 w-full">
           <LayoutDashboard className="h-4 w-4" />
-          Ir para o Dashboard
+          Ir para o Centro de Controlo
         </Button>
 
         {mode === "add" && onAddAnother && (

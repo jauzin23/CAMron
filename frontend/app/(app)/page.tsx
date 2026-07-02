@@ -244,7 +244,7 @@ export default function ControlCenterPage() {
               "overflow-hidden rounded-full transition-transform",
               isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"
             )}
-            title={isOffline ? "Câmera offline" : "Clica para ligar/desligar"}
+            title={isOffline ? "Câmara offline" : "Clica para ligar/desligar"}
           >
             <div
               className={cn(

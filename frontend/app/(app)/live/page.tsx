@@ -527,7 +527,7 @@ export default function LivePage() {
                       setEffects((prev) => ({ ...prev, colorMode: "amber" }))
                     }
                   >
-                    Amber
+                    Âmbar
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="hover:bg-zinc-900 focus:bg-zinc-900"
