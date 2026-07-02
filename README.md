@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>An open-source, low-cost video surveillance platform.</strong><br/>
-  Flash custom firmware directly from your browser. No terminals, IDEs, or coding required.
+  <strong>Open-source, low-cost video surveillance platform.</strong><br/>
+  View / manage cameras and flash custom firmware directly from your browser. No code
 </p>
 
 <p align="center">
@@ -22,22 +22,23 @@
   <img src="https://img.shields.io/github/stars/jauzin23/CAMron?style=flat-square" alt="Stars"/>
 </p>
 
-> **Disclaimer:** **CAMron** has no affiliation with the legendary rapper **[Cam'ron](https://en.wikipedia.org/wiki/Cam%27ron)** aka **Killa CAM**, pioneer of the _pink fur coat_.
+> **Disclaimer:** **CAMron** has no affiliation with the rapper **[Cam'ron](https://en.wikipedia.org/wiki/Cam%27ron)** aka **Killa CAM**, pioneer of the _pink fur coat_.
 
 ---
 
 ## What is CAMron?
 
-Most DIY camera projects are difficult to set up. They require downloading Arduino IDE , installing packages, managing libraries, editing C++ files manually, and manually flashing. Commercial security cameras are expensive, require subscriptions, and store video on external cloud servers.
+Most DIY camera projects are difficult to set up. They require downloading an IDE , installing packages, managing libraries, editing C++ files and manually flashing.
+Commercial security cameras are expensive, require subscriptions, and store video on external cloud servers.
 
-**CAMron** offers a simpler alternative. It is a self-hosted platform for **ESP32-CAM** modules that compiles and flashes custom firmware directly from your browser using the **Web Serial API**. No code editing or compiler installation is required on the user's end.
+**CAMron** is a simpler alternative. It is a self-hosted platform for **ESP32-CAM** modules that compiles and flashes custom firmware directly from your browser using the **Web Serial API**. No code editing or compiler installation is required on the user's end.
 
 ### Key Features
 
 - **No Code Editing:** Enter your wifi in the web UI, and the backend handles the C++ compilation.
-- **In-Browser Flashing:** Writes the binary directly to your ESP32-CAM over USB on your browser.
-- **Local and Private:** No cloud dependencies. Video feeds do not leave your local network.
-- **Camera Management:** Monitor streams, reboot devices, and toggle camera flashlights from a single dashboard.
+- **Browser Flashing:** Writes the binary directly to your ESP32-CAM over USB on your browser.
+- **Local and Private:** No cloud dependencies. Video does not leave your local network.
+- **Camera Management:** Monitor streams and toggle camera flashlights from a single dashboard.
 
 ## Demo
 
@@ -48,10 +49,10 @@ Most DIY camera projects are difficult to set up. They require downloading Ardui
 ## Supported Hardware
 
 - **Camera Module:** Standard ESP32-CAM board.
-- **Programmer:** An ESP32-CAM-MB micro-USB adapter board or an FTDI programmer (FTDI has not been tested yet. I dont have it 😭).
+- **Programmer:** An ESP32-CAM-MB micro-USB adapter board.
 - **Cable:** Data-transfer USB cable (some cables are only for charging, even if they have that [tree-like icon](https://starfirecableshubs.com/wp-content/uploads/2023/01/4-1-1024x590.png) on it).
 
-_Note: Other boards are probably unsupported (currently). I dont have them and they probably have a different pin layout._
+_Note: Other boards are not officially supported (currently). I dont have them and they probably have a different pin layout. Tho feel free to test them and if they are actualy supported, let me know_
 
 ---
 
@@ -79,7 +80,7 @@ flowchart TD
 
 ## Getting Started
 
-1. **Clone this repository:**
+1. **Clone the repo:**
    ```bash
    git clone https://github.com/jauzin23/CAMron.git
    cd CAMron

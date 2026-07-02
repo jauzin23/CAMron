@@ -2,15 +2,15 @@
 
 Please describe the changes you made in this pull request and how they resolve the issue.
 
-Closes # (link or write the issue number here)
+Closes # (write the issue number here)
 
 ## Type of Change
 
 Please state the type of change you are making.
 
-- Bug fix (a change that fixes an issue)
-- New feature (a change that adds new capabilities)
-- Documentation (updates to markdown files or guides)
+- Bug fix
+- New feature
+- Documentation
 - Refactoring or other improvements
 
 ## Testing Done

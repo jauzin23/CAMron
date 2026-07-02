@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,19 +8,19 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage, type Language } from "@/lib/language-context";
 import { Globe } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { WarpBackground } from "@/components/ui/warp-background";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -28,96 +28,122 @@ export function LoginScreen() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the input on mount
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  async function performLogin(targetPin: string) {
+    setIsLoading(true);
+    setError(null);
 
-  function handlePinChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-    // Only allow digits, max 6 characters
-    if (/^\d{0,6}$/.test(value)) {
+    const result = await login(targetPin);
+
+    if (!result.success) {
+      setError(result.error || t("login.incorrectPin"));
+      setPin("");
+    }
+
+    setIsLoading(false);
+  }
+
+  function handlePinChange(value: string) {
+    if (/^\d{0,4}$/.test(value)) {
       setPin(value);
       setError(null);
+
+      if (value.length === 4) {
+        performLogin(value);
+      }
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (pin.length < 4) {
+    if (pin.length !== 4) {
       setError(t("login.pinLengthError"));
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-
-    const result = await login(pin);
-
-    if (!result.success) {
-      setError(result.error || t("login.incorrectPin"));
-      setPin("");
-      inputRef.current?.focus();
+    if (!isLoading) {
+      performLogin(pin);
     }
-
-    setIsLoading(false);
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-background px-4 relative">
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 px-4 overflow-hidden select-none">
+      {/* Magic UI WarpBackground */}
+      <WarpBackground className="absolute inset-0 size-full rounded-none border-none p-0 bg-transparent opacity-40 pointer-events-none">
+        {null}
+      </WarpBackground>
+
+      {/* Language Selector */}
       <div className="absolute top-4 right-4 z-50">
-        <Select
-          value={language}
-          onValueChange={(val) => setLanguage(val as Language)}
-        >
-          <SelectTrigger
-            size="sm"
-            className="w-[105px] h-8 text-xs gap-1.5 bg-secondary/20 border-border/50"
-          >
-            <Globe className="h-3.5 w-3.5 opacity-70 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-200">
-            <SelectItem value="en">English</SelectItem>
-            <SelectItem value="pt">Português</SelectItem>
-          </SelectContent>
-        </Select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs gap-1 bg-zinc-900/60 border-zinc-800/40 text-zinc-300 cursor-pointer"
+            >
+              <Globe className="h-3.5 w-3.5 opacity-60 text-zinc-400" />
+              <span>{language === "en" ? "EN" : "PT"}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[140px]">
+            <DropdownMenuRadioGroup
+              value={language}
+              onValueChange={(val) => setLanguage(val as Language)}
+            >
+              <DropdownMenuRadioItem value="en" className="text-xs cursor-pointer">
+                English
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="pt" className="text-xs cursor-pointer">
+                Português
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      <div className="w-full max-w-sm">
-        {/* PIN form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              {t("login.restrictedAccess")}
+      {/* Card container */}
+      <div className="relative z-10 w-full max-w-[360px]">
+        <Card className="w-full">
+          <CardHeader className="flex flex-col items-center space-y-2 pb-4 pt-6">
+            <div className="flex h-12 w-12 items-center justify-center overflow-hidden mb-1">
+              <img
+                src="/logo.png"
+                alt="CAMron Logo"
+                className="h-12 w-12 object-contain"
+              />
+            </div>
+            <CardTitle className="text-xl font-semibold tracking-tight text-center">
+              CAMron
             </CardTitle>
-            <CardDescription>{t("login.enterPin")}</CardDescription>
+            <CardDescription className="text-center text-xs text-muted-foreground max-w-[265px] mx-auto">
+              {t("login.enterPin")}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="pin-input">PIN</Label>
-                <Input
+          <CardContent className="pt-2 pb-6 px-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex flex-col items-center space-y-4">
+                <InputOTP
                   id="pin-input"
-                  ref={inputRef}
-                  type="password"
-                  inputMode="numeric"
-                  pattern="\d*"
-                  placeholder={t("login.placeholder")}
+                  maxLength={4}
                   value={pin}
                   onChange={handlePinChange}
-                  autoComplete="current-password"
-                  aria-invalid={error ? true : undefined}
-                  aria-describedby={error ? "pin-error" : undefined}
                   disabled={isLoading}
-                />
+                  autoFocus
+                  containerClassName="justify-center"
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                </InputOTP>
                 {error && (
                   <p
                     id="pin-error"
-                    className="text-sm text-destructive-foreground"
+                    className="text-xs text-rose-500 font-medium text-center mt-1"
                   >
                     {error}
                   </p>
@@ -126,8 +152,8 @@ export function LoginScreen() {
 
               <Button
                 type="submit"
-                className="w-full"
-                disabled={isLoading || pin.length < 4}
+                className="w-full h-9 text-xs font-semibold cursor-pointer"
+                disabled={isLoading || pin.length !== 4}
               >
                 {isLoading ? t("login.verifying") : t("login.enter")}
               </Button>

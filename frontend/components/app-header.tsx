@@ -19,12 +19,12 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLanguage, type Language } from "@/lib/language-context";
 
 export function LogoSvg({
@@ -47,22 +47,31 @@ function LanguageSelector() {
 
   return (
     <div className="no-drag">
-      <Select
-        value={language}
-        onValueChange={(val) => setLanguage(val as Language)}
-      >
-        <SelectTrigger
-          size="sm"
-          className="w-[105px] h-8 text-xs gap-1.5 bg-secondary/20 border-border/50"
-        >
-          <Globe className="h-3.5 w-3.5 opacity-70 text-muted-foreground" />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-200">
-          <SelectItem value="pt">Português</SelectItem>
-          <SelectItem value="en">English</SelectItem>
-        </SelectContent>
-      </Select>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2.5 text-xs gap-1.5 bg-secondary/20 border-border/50 cursor-pointer"
+          >
+            <Globe className="h-3.5 w-3.5 opacity-70 text-muted-foreground" />
+            <span>{language === "en" ? "EN" : "PT"}</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[140px]">
+          <DropdownMenuRadioGroup
+            value={language}
+            onValueChange={(val) => setLanguage(val as Language)}
+          >
+            <DropdownMenuRadioItem value="en" className="text-xs cursor-pointer">
+              English
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="pt" className="text-xs cursor-pointer">
+              Português
+            </DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

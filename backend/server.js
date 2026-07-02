@@ -32,9 +32,9 @@ if (
   );
   process.exit(1);
 }
-if (!APP_PIN || !/^\d{4,6}$/.test(APP_PIN)) {
+if (!APP_PIN || !/^\d{4}$/.test(APP_PIN)) {
   console.error(
-    "ERROR: APP_PIN must be a 4-6 digit numeric PIN in .env - refusing to start.",
+    "ERROR: APP_PIN must be a 4-digit numeric PIN in .env - refusing to start.",
   );
   process.exit(1);
 }

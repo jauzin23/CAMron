@@ -21,9 +21,9 @@ router.post("/login", (req, res) => {
     return res.status(400).json({ error: "Missing or invalid PIN" });
   }
 
-  // Validate PIN length (4-6 digits, numeric only)
-  if (!/^\d{4,6}$/.test(pin)) {
-    return res.status(400).json({ error: "The PIN must be between 4 and 6 numeric digits" });
+  // Validate PIN length (4 digits, numeric only)
+  if (!/^\d{4}$/.test(pin)) {
+    return res.status(400).json({ error: "The PIN must be exactly 4 numeric digits" });
   }
 
   if (pin !== APP_PIN) {

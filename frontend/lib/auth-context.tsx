@@ -55,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {
-        // Network error: keep the stored token, allow offline retry
         sessionStorage.removeItem(SESSION_KEY);
         setState({ token: null, isAuthenticated: false, isLoading: false });
       });

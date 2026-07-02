@@ -1,7 +1,6 @@
-// Camera API endpoints for CAMron. All calls go to NEXT_PUBLIC_BACKEND_URL.
+// Camera API endpoints. All calls go to NEXT_PUBLIC_BACKEND_URL.
 // Every request automatically attaches the JWT session token from sessionStorage.
-// Any 401 response triggers a logout by dispatching a custom "camron:logout" event,
-// which the AuthProvider listens to.
+// Any 401 response triggers a logout
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 const SESSION_KEY = "camron_jwt";
@@ -20,10 +19,6 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
   };
 }
 
-/**
- * A drop-in replacement for fetch() that automatically injects the JWT token
- * and handles 401 errors by dispatching the camron:logout event.
- */
 export async function authFetch(
   url: string,
   options: RequestInit = {},
@@ -60,7 +55,6 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
-
 export type Camera = {
   id: string;
   api_key: string;
@@ -73,7 +67,6 @@ export type Camera = {
   wifi_ssid?: string | null;
   wifi_pass?: string | null;
 };
-
 
 export async function getCameras(): Promise<Camera[]> {
   const res = await fetch(`${BACKEND_URL}/api/cameras`, {

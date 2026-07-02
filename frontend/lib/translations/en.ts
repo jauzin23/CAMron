@@ -20,9 +20,9 @@ export const en = {
     surveillanceSystem: "Surveillance System",
     restrictedAccess: "Restricted Access",
     enterPin: "Enter your PIN to access the control panel.",
-    pinLengthError: "The PIN must be at least 4 digits.",
+    pinLengthError: "The PIN must be exactly 4 digits.",
     incorrectPin: "Incorrect PIN. Try again.",
-    placeholder: "4 to 6 digits",
+    placeholder: "4 digits",
     verifying: "Verifying...",
     enter: "Enter",
   },
@@ -36,7 +36,7 @@ export const en = {
   },
   wizard: {
     identity: "Identity",
-    flash: "Flash Firmware",
+    flash: "Installation",
     done: "Done",
     cameraNameRequired: "Camera name is required.",
     genericError: "An error occurred. Please try again.",
@@ -162,9 +162,11 @@ export const en = {
   flash: {
     eyebrow: "Configuration",
     title: 'Flash Firmware in "{name}"',
-    description: "Configure your camera and connect it to the Wi-Fi network using a USB cable.",
+    description:
+      "Configure your camera and connect it to the Wi-Fi network using a USB cable.",
     restrictedTitle: "Restricted Firmware Flashing",
-    restrictedDesc: "Firmware flashing requires a physical USB connection using the Web Serial API, which is only supported in desktop browsers.",
+    restrictedDesc:
+      "Firmware flashing requires a physical USB connection using the Web Serial API, which is only supported in desktop browsers.",
     loading: "Loading data...",
     loadError: "Error loading camera. Is the backend running?",
     backToControl: "Back to Control Center",
