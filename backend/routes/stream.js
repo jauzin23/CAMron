@@ -68,12 +68,9 @@ function cleanupStream(camId) {
  *       503:
  *         description: No cameras registered
  */
-// GET /stream
-// Proxies the MJPEG stream from the camera (multiplexed).
-// Reads camera IP from DB. JWT session required (enforced by server.js).
+// Proxies the MJPEG stream from the camera (multiplexed, reads camera IP from DB).
 router.get("/", (req, res) => {
 
-  // Try ?id= param, or fall back to first camera in DB
   let cam;
   if (req.query.id) {
     cam = db.prepare("SELECT * FROM cameras WHERE id = ?").get(req.query.id);
@@ -91,7 +88,6 @@ router.get("/", (req, res) => {
 
   const camId = cam.id;
 
-  // If an active stream exists for this camera, join it
   if (activeStreams[camId]) {
     const streamInfo = activeStreams[camId];
     streamInfo.clients.add(res);

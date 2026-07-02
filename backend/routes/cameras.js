@@ -10,8 +10,6 @@ const db = require("../db/connection");
 
 const router = express.Router();
 
-// Helpers
-
 function generateApiKey() {
   return crypto.randomBytes(32).toString("hex");
 }
@@ -53,7 +51,7 @@ function pingCamera(ip, port = 81, timeout = 2000) {
   });
 }
 
-// Background polling: ping cameras every 5 seconds to update their last_seen status
+// Ping cameras every 5 seconds to update their online status
 setInterval(() => {
   try {
     const cameras = db.prepare("SELECT id, ip FROM cameras WHERE ip IS NOT NULL AND ip != ''").all();
@@ -80,7 +78,6 @@ setInterval(() => {
  *       200:
  *         description: Success
  */
-// GET /api/cameras
 router.get("/", (req, res) => {
   try {
     const cameras = db
@@ -118,7 +115,6 @@ router.get("/", (req, res) => {
  *       201:
  *         description: Camera created successfully
  */
-// POST /api/cameras
 router.post("/", (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) {
@@ -164,7 +160,6 @@ router.post("/", (req, res) => {
  *       404:
  *         description: Camera not found
  */
-// GET /api/cameras/:id
 router.get("/:id", (req, res) => {
   try {
     const camera = db
@@ -203,7 +198,6 @@ router.get("/:id", (req, res) => {
  *       200:
  *         description: Camera updated successfully
  */
-// PUT /api/cameras/:id
 router.put("/:id", (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) {
@@ -248,7 +242,6 @@ router.put("/:id", (req, res) => {
  *       204:
  *         description: Camera deleted successfully
  */
-// DELETE /api/cameras/:id
 router.delete("/:id", (req, res) => {
   try {
     const camera = db
@@ -287,15 +280,13 @@ router.delete("/:id", (req, res) => {
  *       200:
  *         description: Success
  */
-// POST /api/cameras/register
-// Called by ESP32 on boot to announce its IP. Authenticates with its unique api_key.
+// Device registers its IP on boot using its unique API key.
 router.post("/register", (req, res) => {
   const { id, ip } = req.body;
   if (!id || !ip) {
     return res.status(400).json({ error: "Missing id or ip in body" });
   }
 
-  // Extract Bearer token from header
   const authHeader = req.headers["authorization"] || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -307,7 +298,6 @@ router.post("/register", (req, res) => {
         .json({ error: `No camera with id '${id}' found in DB` });
     }
 
-    // Validate the token against the camera's specific api_key
     if (!token || token !== camera.api_key) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -316,7 +306,6 @@ router.post("/register", (req, res) => {
       "UPDATE cameras SET ip = ?, last_seen = ?, updated_at = ?, flash_active = 0 WHERE id = ?",
     ).run(ip, now(), now(), id);
 
-    // Also insert into flash_history to satisfy the frontend confirmation polling!
     try {
       db.prepare(
         "INSERT INTO flash_history (camera_id, success) VALUES (?, 1)",
@@ -349,7 +338,6 @@ router.post("/register", (req, res) => {
  *       200:
  *         description: Flash toggled successfully
  */
-// POST /api/cameras/:id/flash
 router.post("/:id/flash", (req, res) => {
   const { id } = req.params;
   try {

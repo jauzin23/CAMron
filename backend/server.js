@@ -66,26 +66,24 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/auth", authRouter);
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
-// ESP32 uses POST /register with camera api_key - no JWT needed.
-// All other camera routes require a valid JWT session.
+// ESP32 registration bypasses JWT (verified via api_key in the handler)
 app.use(
   "/api/cameras",
   (req, res, next) => {
     if (req.method === "POST" && req.path === "/register") {
-      return next(); // ESP32 device - verified inside the route handler
+      return next();
     }
     return verifySessionJWT(req, res, next);
   },
   camerasRouter,
 );
 
-// ESP32 uses POST /confirm-flash with camera api_key - no JWT needed.
-// All other flash/compile routes require a valid JWT session.
+// ESP32 flash confirmation bypasses JWT (verified via api_key in the handler)
 app.use(
   "/api",
   (req, res, next) => {
     if (req.method === "POST" && req.path === "/confirm-flash") {
-      return next(); // ESP32 device - verified inside the route handler
+      return next();
     }
     return verifySessionJWT(req, res, next);
   },

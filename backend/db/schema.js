@@ -3,8 +3,7 @@
 const db = require("./connection");
 
 /**
- * Runs CREATE TABLE IF NOT EXISTS for all tables on boot.
- * No migration system - just idempotent schema creation.
+ * Creates the table if it doesnt exist  (this is for all tables).
  */
 function initSchema() {
   db.exec(`
@@ -22,8 +21,8 @@ function initSchema() {
 
   // Dynamic migration for wifi credentials
   const tableInfo = db.prepare("PRAGMA table_info(cameras)").all();
-  const columns = tableInfo.map(col => col.name);
-  
+  const columns = tableInfo.map((col) => col.name);
+
   if (!columns.includes("wifi_ssid")) {
     db.exec("ALTER TABLE cameras ADD COLUMN wifi_ssid TEXT DEFAULT NULL;");
     console.log("[db] Migrated: added column wifi_ssid to cameras table.");

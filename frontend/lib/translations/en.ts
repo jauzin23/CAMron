@@ -28,8 +28,10 @@ export const en = {
   },
   restricted: {
     title: "Restricted Access",
-    descDefault: "This feature requires a direct USB connection to flash firmware. Please access it from a desktop computer.",
-    descNew: "Adding and configuring new cameras requires flashing firmware via USB, a feature only available on desktop computers.",
+    descDefault:
+      "This feature requires a direct USB connection to flash firmware. Please access it from a desktop computer.",
+    descNew:
+      "Adding and configuring new cameras requires flashing firmware via USB, a feature only available on desktop computers.",
     backButton: "Back to Control Center",
   },
   wizard: {
@@ -53,8 +55,9 @@ export const en = {
     connectUsb: "Connect via USB",
     connectSuccess: "Device connected successfully!",
     selectPort: "Select Serial Port",
-    browserNotSupported: "Your browser does not support the Web Serial API. Please use Chrome or Edge.",
-    missingWifi: "Please fill in the Wi-Fi and Password.",
+    browserNotSupported:
+      "Your browser does not support the Web Serial API. Please use Chrome or Edge.",
+    missingWifi: "Please fill in the wifi and Password.",
     compiling: "Compiling firmware...",
     writing: "Writing to camera...",
     done: "Done!",
@@ -62,13 +65,15 @@ export const en = {
     failed: "Failed!",
     configureLater: "Configure camera later",
     connectCameraPrompt: "Connect your camera",
-    connectCameraDesc: "To get your new camera up and running, we need to configure it using a USB cable. Follow the steps below.",
+    connectCameraDesc:
+      "To get your new camera up and running, we need to configure it using a USB cable. Follow the steps below.",
     stepConnect: "Connect",
     stepCompile: "Compile",
     stepFlash: "Flash",
     stepVerify: "Verify",
-    enterWifiDetails: "Enter Wi-Fi network details",
-    wifiDesc: "The camera will use these details to connect to your local network.",
+    enterWifiDetails: "Enter wifi network details",
+    wifiDesc:
+      "The camera will use these details to connect to your local network.",
     wifiSsid: "Network Name (SSID):",
     wifiPassword: "Password:",
     advancedConfig: "Advanced Configuration",
@@ -84,26 +89,32 @@ export const en = {
     flashSuccessStatus: "Flashed successfully!",
     waitingHandshake: "Waiting for camera boot signal...",
     cameraOnline: "Camera connected and online!",
-    portInUse: "The USB connection appears to be in use by another program. Close other programs and try again.",
+    portInUse:
+      "The USB connection appears to be in use by another program. Close other programs and try again.",
     usbCancelled: "USB connection cancelled by user.",
-    cameraNotFound: "Could not find the camera. Check if the cable is inserted correctly.",
+    cameraNotFound:
+      "Could not find the camera. Check if the cable is inserted correctly.",
     compileInitFailed: "Failed to initiate compilation.",
-    compilePrepareError: "An error occurred preparing the camera software. Try again.",
+    compilePrepareError:
+      "An error occurred preparing the camera software. Try again.",
     compileInternalError: "An error occurred. Try again later.",
     fileDownloadError: "Failed to fetch file",
-    flashWriteError: "An error occurred writing to the camera. Check the cable and try again.",
+    flashWriteError:
+      "An error occurred writing to the camera. Check the cable and try again.",
     handshakeDbError: "Error checking database:",
     flashFailedStatus: "Could not complete configuration.",
     setupDone: "Configuration complete!",
     detectedPort: "Port detected:",
     noUsbSelected: "No USB connection selected.",
-    handshakedSuccessfully: "The camera successfully communicated with the server!",
+    handshakedSuccessfully:
+      "The camera successfully communicated with the server!",
   },
   dashboard: {
     title: "Control Center",
     subtitle: "Cameras",
     loadCamerasError: "Error loading cameras. Is the backend running?",
-    cameraNoIpError: 'The camera "{name}" has not registered an IP address yet.',
+    cameraNoIpError:
+      'The camera "{name}" has not registered an IP address yet.',
     statusLabel: "Status",
     activityLabel: "Last Activity",
     actionsLabel: "Actions",
@@ -147,5 +158,15 @@ export const en = {
     notFound: "Camera not found.",
     loadingCamera: "Loading camera...",
     unknownError: "Unknown error.",
+  },
+  flash: {
+    eyebrow: "Configuration",
+    title: 'Flash Firmware in "{name}"',
+    description: "Configure your camera and connect it to the Wi-Fi network using a USB cable.",
+    restrictedTitle: "Restricted Firmware Flashing",
+    restrictedDesc: "Firmware flashing requires a physical USB connection using the Web Serial API, which is only supported in desktop browsers.",
+    loading: "Loading data...",
+    loadError: "Error loading camera. Is the backend running?",
+    backToControl: "Back to Control Center",
   },
 };

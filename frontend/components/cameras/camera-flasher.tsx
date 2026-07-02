@@ -45,13 +45,13 @@ interface CameraFlasherProps {
 }
 
 type FlashingStep =
-  | "connect" // USB Connection / Serial Handshake
-  | "wifi" // Wi-Fi credentials form
-  | "compiling" // Processing compiling logs (non-technical spinner)
-  | "flashing" // Writing firmware via esptool-js
-  | "verifying" // Long-polling first boot confirmation
-  | "success" // Completed successfully
-  | "failed"; // Error state
+  | "connect"
+  | "wifi"
+  | "compiling"
+  | "flashing"
+  | "verifying"
+  | "success"
+  | "failed";
 
 const stepVariants = {
   initial: { opacity: 0, y: 12, scale: 0.98 },
@@ -80,6 +80,7 @@ export function CameraFlasher({
 }: CameraFlasherProps) {
   const { t } = useLanguage();
   const [isMounted, setIsMounted] = useState<boolean>(false);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -89,53 +90,38 @@ export function CameraFlasher({
     setStepState(newStep);
     onStepChange?.(newStep);
   };
+
   const [loading, setLoading] = useState<boolean>(false);
   const [serialSupported, setSerialSupported] = useState<boolean>(false);
-
-  // Countdown timer for user guidance
   const [countdown, setCountdown] = useState<number>(5);
 
-  // Serial Port connection refs and states
   const [port, setPort] = useState<any>(null);
   const transportRef = useRef<any>(null);
   const isFirstLoadRef = useRef<boolean>(true);
 
-  // Wi-Fi and Camera configuration
-  const [wifiSsid, setWifiSsid] = useState<string>("");
+  const [wifiSsid, setWifiSsid] = useState<string>("MinhaRede_2.4G");
   const [wifiPassword, setWifiPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [backendIp, setBackendIp] = useState<string>("127.0.0.1");
   const [backendPort, setBackendPort] = useState<string>("3000");
 
-  // Camera settings
   const [cameraId, setCameraId] = useState<string | null>(null);
   const [newCameraName, setNewCameraName] = useState<string>("");
   const [isReflash, setIsReflash] = useState<boolean>(false);
   const [detectedCameraName, setDetectedCameraName] = useState<string>("");
 
-  // List of other cameras to import credentials from
   const [allCameras, setAllCameras] = useState<Camera[]>([]);
-
-  // Flashing progress
   const [flashProgress, setFlashProgress] = useState<number>(0);
-  const [currentFlashingFile, setCurrentFlashingFile] = useState<string>("");
+  const [currentFlashingFile, setCurrentFlashingFile] =
+    useState<string>("firmware.bin");
 
-  // Boot verification after flashing
   const [verificationStatus, setVerificationStatus] = useState<
     "waiting" | "timeout"
   >("waiting");
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Error message
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  // Live serial logs after flashing
-  const [serialLogs, setSerialLogs] = useState<string>("");
-  const verificationReaderRef = useRef<any>(null);
-  const verificationPortOpenRef = useRef<boolean>(false);
-  const logEndRef = useRef<HTMLDivElement | null>(null);
-
-  // Load camera props if passed
+  // Load camera props if provided
   useEffect(() => {
     if (camera) {
       setCameraId(camera.id);
@@ -153,14 +139,7 @@ export function CameraFlasher({
     }
   }, [isMounted]);
 
-  // Scroll serial logs to bottom
-  useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [serialLogs]);
-
-  // Guidance timer
+  // Countdown timer for connection step
   useEffect(() => {
     if (step === "connect") {
       if (!isFirstLoadRef.current) {
@@ -182,7 +161,7 @@ export function CameraFlasher({
     }
   }, [step]);
 
-  // Retrieve network info and fetch list of cameras for import dropdown
+  // Fetch network configuration and configured cameras
   useEffect(() => {
     if (isMounted) {
       const fetchNetworkInfo = async () => {
@@ -203,7 +182,6 @@ export function CameraFlasher({
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data)) {
-              // Filter to show only cameras with credentials already saved
               const configured = data.filter((c) => c.wifi_ssid);
               setAllCameras(configured);
             }
@@ -214,21 +192,18 @@ export function CameraFlasher({
     }
   }, [isMounted]);
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, []);
 
-  // Step 1: Connect to USB and perform Serial Handshake check
   const handleConnectPort = async () => {
     setLoading(true);
     setErrorMsg("");
     try {
       const { ESPLoader, Transport } = await import("esptool-js");
 
-      // Open browser native port picker
       const activePort = await (navigator as any).serial.requestPort();
       if (!activePort) {
         throw new Error(t("flasher.noUsbSelected"));
@@ -236,7 +211,7 @@ export function CameraFlasher({
 
       setPort(activePort);
 
-      // 1. Handshake check using native Web Serial reader/writer (bypasses SLIP parser)
+      // Perform initial handshake using raw serial communication
       let detectedId = "";
       try {
         await activePort.open({ baudRate: 115200 });
@@ -251,10 +226,8 @@ export function CameraFlasher({
           let rxBuffer = "";
 
           while (Date.now() - handshakeStart < 1200) {
-            // Write handshake command
             await writer.write(encoder.encode("CAMRON_HANDSHAKE\n"));
 
-            // Read response chunk with race timeout
             const result = await Promise.race([
               reader.read(),
               new Promise<any>((resolve) =>
@@ -301,11 +274,12 @@ export function CameraFlasher({
         } catch (closeErr) {}
       }
 
-      // 2. Process results
       if (detectedId) {
         console.log("Handshake successful! Detected ID:", detectedId);
         try {
-          const res = await authFetch(`${BACKEND_URL}/api/cameras/${detectedId}`);
+          const res = await authFetch(
+            `${BACKEND_URL}/api/cameras/${detectedId}`,
+          );
           if (res.ok) {
             const existingCamera = await res.json();
             if (existingCamera && existingCamera.id) {
@@ -314,9 +288,7 @@ export function CameraFlasher({
               setWifiPassword(existingCamera.wifi_pass || "");
               setIsReflash(true);
               setDetectedCameraName(existingCamera.name);
-              toast.success(
-                t("flasher.connectSuccess")
-              );
+              toast.success(t("flasher.connectSuccess"));
             }
           }
         } catch (fetchErr) {
@@ -324,7 +296,7 @@ export function CameraFlasher({
         }
         setStep("wifi");
       } else {
-        // Handshake failed or timed out: verify it's a valid ESP32 using the prototype's original loader.main() method
+        // Fallback: Verify connection using the standard loader handshake
         const transport = new Transport(activePort, false);
         transportRef.current = transport;
 
@@ -370,18 +342,14 @@ export function CameraFlasher({
       }
 
       if (err.message && err.message.includes("Failed to open serial port")) {
-        setErrorMsg(
-          t("flasher.portInUse")
-        );
+        setErrorMsg(t("flasher.portInUse"));
       } else if (
         err.name === "NotFoundError" ||
         err.message.includes("User cancelled")
       ) {
         setErrorMsg(t("flasher.usbCancelled"));
       } else {
-        setErrorMsg(
-          t("flasher.cameraNotFound")
-        );
+        setErrorMsg(t("flasher.cameraNotFound"));
       }
       setStep("failed");
     } finally {
@@ -389,7 +357,6 @@ export function CameraFlasher({
     }
   };
 
-  // Step 2: Trigger compilation
   const handleStartCompilation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!wifiSsid || !wifiPassword) {
@@ -410,7 +377,7 @@ export function CameraFlasher({
           wifi_password: wifiPassword,
           custom_host: backendIp,
           custom_port: parseInt(backendPort, 10),
-          cameraId: cameraId, // will be null for new camera, backend generates one
+          cameraId: cameraId,
           name: isReflash ? detectedCameraName : newCameraName || cameraName,
         }),
       });
@@ -423,8 +390,7 @@ export function CameraFlasher({
       const { cameraId: generatedId } = await response.json();
       setCameraId(generatedId);
 
-      // Open SSE stream for compilation logs
-      // EventSource does not support custom headers, so the JWT is passed via ?token=
+      // EventSource does not support custom headers, so the JWT token is passed in the query
       const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
       const eventSource = new EventSource(
         `${BACKEND_URL}/api/compile/stream/${generatedId}?token=${encodeURIComponent(sseToken)}`,
@@ -432,15 +398,12 @@ export function CameraFlasher({
 
       eventSource.addEventListener("complete", (event: any) => {
         eventSource.close();
-        // Compile succeeded, proceed to write binaries via Web Serial
         void handleFlashDevice(generatedId);
       });
 
       eventSource.addEventListener("error", () => {
         eventSource.close();
-        setErrorMsg(
-          t("flasher.compilePrepareError")
-        );
+        setErrorMsg(t("flasher.compilePrepareError"));
         setStep("failed");
         void authFetch(`${BACKEND_URL}/api/cleanup/${generatedId}`, {
           method: "POST",
@@ -454,7 +417,6 @@ export function CameraFlasher({
     }
   };
 
-  // Step 3: Write binaries using esptool-js
   const handleFlashDevice = async (targetCameraId: string) => {
     setStep("flashing");
     setFlashProgress(0);
@@ -464,7 +426,6 @@ export function CameraFlasher({
     try {
       const { ESPLoader, Transport } = await import("esptool-js");
 
-      // Download compiled binaries in parallel from backend
       const filesToFlash = [
         { name: "bootloader.bin", address: 0x1000 },
         { name: "partitions.bin", address: 0x8000 },
@@ -477,7 +438,9 @@ export function CameraFlasher({
           const downloadUrl = `${BACKEND_URL}/api/download/${targetCameraId}/${fileInfo.name}`;
           const res = await authFetch(downloadUrl);
           if (!res.ok) {
-            throw new Error(`${t("flasher.fileDownloadError")} ${fileInfo.name}.`);
+            throw new Error(
+              `${t("flasher.fileDownloadError")} ${fileInfo.name}.`,
+            );
           }
           const buf = await res.arrayBuffer();
           return {
@@ -487,7 +450,6 @@ export function CameraFlasher({
         }),
       );
 
-      // Trigger asynchronous folder cleanup on server
       try {
         void authFetch(`${BACKEND_URL}/api/cleanup/${targetCameraId}`, {
           method: "POST",
@@ -533,7 +495,6 @@ export function CameraFlasher({
 
       await loader.main();
 
-      // Write flash with settings optimal for ESP32-CAM (80MHz, DIO, 4MB)
       await loader.writeFlash({
         fileArray,
         flashMode: "dio",
@@ -544,18 +505,15 @@ export function CameraFlasher({
         reportProgress: (fileIndex, written, total) => {
           const percent = Math.round((written / total) * 100);
           setFlashProgress(percent);
-          setCurrentFlashingFile(
-            `${t("flasher.writingFile")}: ${percent}%`
-          );
+          setCurrentFlashingFile(`${t("flasher.writingFile")}: ${percent}%`);
         },
       });
 
-      // Disconnect cleanly to let ESP32 reboot and start Wi-Fi connection
       try {
         if (typeof (loader as any).hardReset === "function") {
           await (loader as any).hardReset();
         } else {
-          // Manual hardware reset sequence for ESP32
+          // Manual hardware reset sequence
           await transport.setRTS(true);
           await transport.setDTR(false);
           await new Promise((resolve) => setTimeout(resolve, 100));
@@ -570,7 +528,24 @@ export function CameraFlasher({
         await transport.disconnect();
       } catch (discErr) {}
 
-      // Move to verification step
+      // DTR/RTS pulse to release reset state and boot the ESP32 cleanly
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await activePort.open({ baudRate: 115200 });
+        await activePort.setSignals({
+          dataTerminalReady: false,
+          requestToSend: true,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        await activePort.setSignals({
+          dataTerminalReady: false,
+          requestToSend: false,
+        });
+        await activePort.close();
+      } catch (sigErr) {
+        console.warn("Failed reset pulse:", sigErr);
+      }
+
       setStep("verifying");
       startPollingVerification(targetCameraId);
     } catch (err: any) {
@@ -581,97 +556,16 @@ export function CameraFlasher({
           await transportRef.current.disconnect();
         } catch (discErr) {}
       }
-      setErrorMsg(
-        t("flasher.flashWriteError")
-      );
+      setErrorMsg(t("flasher.flashWriteError"));
       setStep("failed");
     }
   };
 
-  const stopSerialLogs = async () => {
-    if (verificationReaderRef.current) {
-      try {
-        await verificationReaderRef.current.cancel();
-      } catch (e) {}
-      verificationReaderRef.current = null;
-    }
-    if (port && verificationPortOpenRef.current) {
-      try {
-        await port.setSignals({
-          dataTerminalReady: false,
-          requestToSend: false,
-        });
-      } catch (e) {}
-      try {
-        await port.close();
-      } catch (e) {}
-      verificationPortOpenRef.current = false;
-    }
-  };
-
-  // Step 4: Long-polling verification
   const startPollingVerification = (targetCameraId: string) => {
     setVerificationStatus("waiting");
-    setSerialLogs("");
+    setErrorMsg("");
 
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-
-    // Start raw serial read loop for diagnostics
-    const readSerialLogs = async () => {
-      try {
-        let activePort = port;
-        if (!activePort) {
-          console.warn("No serial port available to read logs.");
-          return;
-        }
-
-        // Wait a brief moment to ensure the flash port has disconnected fully
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        await activePort.open({ baudRate: 115200 });
-        verificationPortOpenRef.current = true;
-
-        // Reset the ESP32 and ensure RTS/DTR are released so it runs normally
-        try {
-          await activePort.setSignals({
-            dataTerminalReady: false,
-            requestToSend: true,
-          });
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          await activePort.setSignals({
-            dataTerminalReady: false,
-            requestToSend: false,
-          });
-        } catch (e) {
-          console.warn("Failed to toggle RTS/DTR for reboot:", e);
-        }
-
-        const decoder = new TextDecoder();
-        const reader = activePort.readable.getReader();
-        verificationReaderRef.current = reader;
-
-        setSerialLogs("--- Starting serial diagnostic console ---\n");
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            const text = decoder.decode(value);
-            setSerialLogs((prev) => prev + text);
-          }
-        }
-      } catch (err: any) {
-        console.warn("Error in serial log reader:", err);
-        setSerialLogs(
-          (prev) =>
-            prev +
-            `\n[Console disabled or camera disconnected: ${err.message}]\n`,
-        );
-      } finally {
-        verificationPortOpenRef.current = false;
-      }
-    };
-    // void readSerialLogs(); // Disabled to prevent locking the serial port and keeping the ESP32 in reset, allowing the user to use Arduino IDE Serial Monitor
 
     pollIntervalRef.current = setInterval(async () => {
       try {
@@ -682,7 +576,6 @@ export function CameraFlasher({
           const data = await res.json();
           if (data.confirmed) {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-            void stopSerialLogs();
             setStep("success");
             toast.success(t("flasher.cameraOnline"));
           }
@@ -695,14 +588,15 @@ export function CameraFlasher({
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         setVerificationStatus("timeout");
-        void stopSerialLogs();
       }
     }, 60000);
   };
 
   const handleResetWizard = () => {
     if (cameraId) {
-      void authFetch(`${BACKEND_URL}/api/cleanup/${cameraId}`, { method: "POST" });
+      void authFetch(`${BACKEND_URL}/api/cleanup/${cameraId}`, {
+        method: "POST",
+      });
     }
     setErrorMsg("");
     setStep("connect");
@@ -729,7 +623,6 @@ export function CameraFlasher({
           exit="exit"
           className="w-full flex flex-col items-center gap-6"
         >
-          {/* STEP 1: Connect USB */}
           {step === "connect" && (
             <div className="flex flex-col items-center gap-6 w-full animate-fade-in">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
@@ -791,7 +684,6 @@ export function CameraFlasher({
             </div>
           )}
 
-          {/* STEP 2: Wi-Fi Setup Form */}
           {step === "wifi" && (
             <form
               onSubmit={handleStartCompilation}
@@ -810,9 +702,7 @@ export function CameraFlasher({
                 </p>
               </div>
 
-              {/* Compact Form Layout */}
               <div className="flex flex-col gap-3 w-full max-w-xs text-left">
-                {/* Import settings dropdown (only show if other cameras exist) */}
                 {allCameras.filter((c) => c.id !== cameraId).length > 0 && (
                   <div className="flex flex-col gap-1.5 mb-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground pl-0.5">
@@ -916,7 +806,7 @@ export function CameraFlasher({
                           />
                           <Input
                             id="backend-port"
-                            placeholder="Porta"
+                            placeholder="Port"
                             value={backendPort}
                             onChange={(e) => setBackendPort(e.target.value)}
                             pattern="^[0-9]{1,5}$"
@@ -950,7 +840,6 @@ export function CameraFlasher({
             </form>
           )}
 
-          {/* STEP 3: Compiling Progress */}
           {step === "compiling" && (
             <div className="flex flex-col items-center gap-6 w-full py-8 animate-fade-in">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
@@ -968,7 +857,6 @@ export function CameraFlasher({
             </div>
           )}
 
-          {/* STEP 4: Flashing Progress */}
           {step === "flashing" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
@@ -1001,7 +889,6 @@ export function CameraFlasher({
             </div>
           )}
 
-          {/* STEP 5: Verifying boot */}
           {step === "verifying" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
               <div className="relative">
@@ -1023,9 +910,7 @@ export function CameraFlasher({
                 <div className="flex flex-col gap-4 w-full max-w-xs mt-2 animate-fade-in">
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-left text-xs leading-normal">
                     <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>
-                      {t("flasher.flashFailedStatus")}
-                    </span>
+                    <span>{t("flasher.flashFailedStatus")}</span>
                   </div>
                   <div className="flex gap-3">
                     <Button
@@ -1049,7 +934,6 @@ export function CameraFlasher({
             </div>
           )}
 
-          {/* STEP 6: General failure */}
           {step === "failed" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-rose-500/10 border border-rose-500/20">
@@ -1086,7 +970,6 @@ export function CameraFlasher({
             </div>
           )}
 
-          {/* STEP 7: Success */}
           {step === "success" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
               <div className="relative">

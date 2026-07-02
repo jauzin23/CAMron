@@ -28,7 +28,7 @@ static httpd_handle_t control_httpd = NULL;
 // Returns true if the request carries the correct bearer token.
 static bool check_bearer(httpd_req_t *req) {
   char auth_buf[80];
-  // Silently reject if no Authorization header or buffer too small
+  // Reject if no Authorization header or buffer too small
   if (httpd_req_get_hdr_value_str(req, "Authorization", auth_buf, sizeof(auth_buf)) != ESP_OK) {
     return false;
   }

@@ -1,29 +1,26 @@
 # Contributing to CAMron
 
-We welcome contributions to CAMron. To keep the project organized, we follow a specific process for all changes. Please read this guide before you start working on any code.
+Thank you for your interest in contributing to CAMron. Whether you want to fix a bug, add a feature, or support a new hardware model, contributions are welcome.
 
-## The Contribution Process
+### How to contribute:
+1. **Submit a Pull Request or open an Issue:** If you find a bug or want to make a simple improvement, feel free to open a Pull Request. For larger features, please open an Issue first so we can discuss the changes.
+2. **Write clean code:** Keep changes focused and avoid adding unnecessary external dependencies.
+3. **Verify your changes:** Make sure compilation and browser flashing work as expected before submitting.
 
-Do not write code or submit pull requests without a corresponding GitHub issue. If you want to fix a bug or add a feature, you must first check the existing issues. If there is no issue for your change, create a new one.
+### Running in Development Mode:
 
-In the issue description, explain clearly what you plan to do. Leave a comment on the issue asking to be assigned to it. You must wait until a maintainer assigns the issue to you and accepts your proposal before you start writing any code. We will not accept pull requests that are not linked to an assigned issue.
+* **Backend:**
+  ```bash
+  cd backend
+  npm install
+  npm run dev
+  ```
 
-## Development Workflow
+* **Frontend:**
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
 
-Once you are assigned to an issue, you can begin your work.
-
-First, fork the CAMron repository to your own GitHub account. Clone the fork to your local machine.
-
-Create a new git branch for your work. Use a descriptive name for your branch, such as bugfix-login-error or feature-dark-mode.
-
-Make your code changes on your branch. Make sure to test your changes locally.
-
-## Submitting Your Changes
-
-Push your branch to your forked repository.
-
-Open a pull request from your fork back to the main branch of the original CAMron repository.
-
-In the pull request description, you must link the pull request to the assigned issue using the issue number. Describe what changes you made and how you verified that they work.
-
-A maintainer will review your pull request. They might ask for some changes before they merge your code into the project.
+Thank you for helping improve the project!

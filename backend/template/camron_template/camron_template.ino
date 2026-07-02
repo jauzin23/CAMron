@@ -69,20 +69,16 @@ static void registerWithBackend() {
   http.end();
 }
 
-// setup()
 void setup() {
-  // Aguarda 500ms para o adaptador CH340C/USB-Serial libertar as linhas DTR/RTS
-  // após o flash. Evita corrida entre o boot do chip e o controlo das linhas
-  // pelo browser via Web Serial. Sem este delay, o EN pode ainda estar LOW.
+  // Wait 500ms to let the CH340/USB-Serial adapter release DTR/RTS lines after flashing.
+  // This avoids a race condition between the chip booting and the browser controlling
+  // the lines via Web Serial. Without this, the chip might not boot properly.
   delay(500);
 
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println("\n\n=== CAMron booting ===");
 
-
-
-  // Camera init
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer   = LEDC_TIMER_0;
@@ -129,7 +125,6 @@ void setup() {
   }
   Serial.println("Camera init OK");
 
-  // Flash LED setup
   #if defined(ESP_ARDUINO_VERSION) && ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
     ledcAttach(FLASH_GPIO_NUM, 5000, 8);
     ledcWrite(FLASH_GPIO_NUM, 0);
@@ -142,7 +137,6 @@ void setup() {
   sensor_t *s = esp_camera_sensor_get();
   s->set_framesize(s, FRAMESIZE_QVGA);
 
-  // WiFi
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setSleep(false);
@@ -162,7 +156,7 @@ void setup() {
   Serial.print("Camera IP: ");
   Serial.println(WiFi.localIP());
 
-  // First Boot NVS Check & Confirmation
+  // Confirm successful boot in NVS to skip future setup calls
   Preferences preferences;
   preferences.begin("camron", false);
   String storedId = preferences.getString("camera_id", "");
@@ -192,7 +186,6 @@ void setup() {
   }
   preferences.end();
 
-  // Handshake
   registerWithBackend();
 
   s->set_framesize(s, FRAMESIZE_SVGA);
@@ -200,14 +193,12 @@ void setup() {
   s->set_hmirror(s, 1);
   Serial.println("Resolution upgraded to SVGA, orientation applied");
 
-  // Start stream server
   startCameraServer();
 
   Serial.printf("\nStream running at http://%s:%d/stream\n",
                 WiFi.localIP().toString().c_str(), STREAM_PORT);
 }
 
-// loop()
 void loop() {
   static unsigned long lastReg = 0;
   if (millis() - lastReg > 5UL * 60UL * 1000UL) {

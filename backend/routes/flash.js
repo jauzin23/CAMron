@@ -10,7 +10,9 @@ const os = require("os");
 const db = require("../db/connection");
 const router = express.Router();
 
-const ARDUINO_CLI_PATH = process.env.ARDUINO_CLI_PATH || "C:\\Users\\jaamj\\AppData\\Local\\Programs\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe";
+const ARDUINO_CLI_PATH =
+  process.env.ARDUINO_CLI_PATH ||
+  "C:\\Users\\jaamj\\AppData\\Local\\Programs\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe";
 
 // In-memory store for compiler states and confirmations
 const compilations = {};
@@ -20,20 +22,20 @@ const confirmations = {};
 function getLocalIp() {
   const interfaces = os.networkInterfaces();
   let fallbackIp = "127.0.0.1";
-  
+
   for (const name of Object.keys(interfaces)) {
     const lowerName = name.toLowerCase();
     // Skip virtual interfaces commonly used by VMs or VPNs
     if (
-      lowerName.includes("virtual") || 
-      lowerName.includes("vbox") || 
-      lowerName.includes("vmware") || 
-      lowerName.includes("zerotier") || 
+      lowerName.includes("virtual") ||
+      lowerName.includes("vbox") ||
+      lowerName.includes("vmware") ||
+      lowerName.includes("zerotier") ||
       lowerName.includes("radmin")
     ) {
       continue;
     }
-    
+
     for (const net of interfaces[name]) {
       if (net.family === "IPv4" && !net.internal) {
         const ip = net.address;
@@ -42,7 +44,11 @@ function getLocalIp() {
           continue;
         }
         // Prioritize standard local networks
-        if (ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")) {
+        if (
+          ip.startsWith("192.168.") ||
+          ip.startsWith("10.") ||
+          ip.startsWith("172.")
+        ) {
           return ip;
         }
         fallbackIp = ip;
@@ -82,7 +88,10 @@ if (!fs.existsSync(tempDirRoot)) {
 // GET /api/network-info
 router.get("/network-info", (req, res) => {
   // Use PUBLIC_PORT if set (e.g., public gateway port in Docker), fallback to internal PORT
-  res.json({ ip: DETECTED_IP, port: process.env.PUBLIC_PORT || process.env.PORT || 3000 });
+  res.json({
+    ip: DETECTED_IP,
+    port: process.env.PUBLIC_PORT || process.env.PORT || 3000,
+  });
 });
 
 /**
@@ -116,10 +125,13 @@ router.get("/network-info", (req, res) => {
  */
 // POST /api/compile/initiate
 router.post("/compile/initiate", (req, res) => {
-  const { wifi_ssid, wifi_password, custom_host, custom_port, cameraId, name } = req.body;
+  const { wifi_ssid, wifi_password, custom_host, custom_port, cameraId, name } =
+    req.body;
 
   if (!wifi_ssid || !wifi_password) {
-    return res.status(400).json({ error: "WiFi SSID and Password are required." });
+    return res
+      .status(400)
+      .json({ error: "WiFi SSID and Password are required." });
   }
 
   let finalCameraId = cameraId;
@@ -129,28 +141,36 @@ router.post("/compile/initiate", (req, res) => {
   try {
     if (finalCameraId) {
       // Existing camera: fetch, update WiFi settings, and reset api_key
-      const camera = db.prepare("SELECT * FROM cameras WHERE id = ?").get(finalCameraId);
+      const camera = db
+        .prepare("SELECT * FROM cameras WHERE id = ?")
+        .get(finalCameraId);
       if (!camera) {
-        return res.status(404).json({ error: "Camera not found in the database." });
+        return res
+          .status(404)
+          .json({ error: "Camera not found in the database." });
       }
       // Generate a new unique authentication token for this flash session
       finalApiKey = crypto.randomBytes(32).toString("hex");
       finalName = camera.name;
-      
+
       db.prepare(
-        "UPDATE cameras SET wifi_ssid = ?, wifi_pass = ?, api_key = ?, updated_at = datetime('now') WHERE id = ?"
+        "UPDATE cameras SET wifi_ssid = ?, wifi_pass = ?, api_key = ?, updated_at = datetime('now') WHERE id = ?",
       ).run(wifi_ssid, wifi_password, finalApiKey, finalCameraId);
-      console.log(`[compiler] Re-flash initiated for existing camera: ${finalName} (${finalCameraId}) with new api_key`);
+      console.log(
+        `[compiler] Re-flash initiated for existing camera: ${finalName} (${finalCameraId}) with new api_key`,
+      );
     } else {
       // New camera: generate credentials and insert to DB
       finalCameraId = crypto.randomUUID();
       finalApiKey = crypto.randomBytes(32).toString("hex");
-      
+
       db.prepare(
         `INSERT INTO cameras (id, api_key, name, wifi_ssid, wifi_pass, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+         VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
       ).run(finalCameraId, finalApiKey, finalName, wifi_ssid, wifi_password);
-      console.log(`[compiler] Created DB record for new camera: ${finalName} (${finalCameraId})`);
+      console.log(
+        `[compiler] Created DB record for new camera: ${finalName} (${finalCameraId})`,
+      );
     }
 
     const host = custom_host || DETECTED_IP;
@@ -164,7 +184,7 @@ router.post("/compile/initiate", (req, res) => {
       apiKey: finalApiKey,
       status: "pending",
       logs: "",
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     res.json({ cameraId: finalCameraId });
@@ -214,13 +234,13 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   const targetDir = path.join(tempDirRoot, `temp_${cameraId}`);
   const templateDir = path.join(__dirname, "..", "template");
 
-  // 1. Copy template folder to temp folder
+  // Copy template files to temporary compilation directory
   try {
     if (fs.existsSync(targetDir)) {
       fs.rmSync(targetDir, { recursive: true, force: true });
     }
     fs.mkdirSync(targetDir, { recursive: true });
-    
+
     const copyRecursive = (src, dest) => {
       fs.mkdirSync(dest, { recursive: true });
       const entries = fs.readdirSync(src, { withFileTypes: true });
@@ -234,19 +254,21 @@ router.get("/compile/stream/:cameraId", (req, res) => {
         }
       }
     };
-    
+
     copyRecursive(templateDir, targetDir);
     res.write(`data: [SYSTEM] Template files copied successfully.\n\n`);
   } catch (err) {
     console.error("[compiler] Error copying template:", err);
-    res.write(`data: [ERROR] Failed to set up temporary environment: ${err.message}\n\n`);
+    res.write(
+      `data: [ERROR] Failed to set up temporary environment: ${err.message}\n\n`,
+    );
     compilation.status = "failed";
     clearInterval(heartbeat);
     res.end();
     return;
   }
 
-  // 2. Write custom config.h with filled values
+  // Inject wifi credentials and endpoint configurations
   try {
     const configPath = path.join(targetDir, "camron_template", "config.h");
     let configContent = fs.readFileSync(configPath, "utf8");
@@ -260,17 +282,21 @@ router.get("/compile/stream/:cameraId", (req, res) => {
       .replace("TEMPLATE_CAMERA_ID", cameraId);
 
     fs.writeFileSync(configPath, configContent, "utf8");
-    res.write(`data: [SYSTEM] WiFi and network configurations saved to config.h file.\n\n`);
+    res.write(
+      `data: [SYSTEM] WiFi and network configurations saved to config.h file.\n\n`,
+    );
   } catch (err) {
     console.error("[compiler] Error writing config.h:", err);
-    res.write(`data: [ERROR] Failed to configure config.h file: ${err.message}\n\n`);
+    res.write(
+      `data: [ERROR] Failed to configure config.h file: ${err.message}\n\n`,
+    );
     compilation.status = "failed";
     clearInterval(heartbeat);
     res.end();
     return;
   }
 
-  // 3. Spawn Arduino CLI process
+  // Run arduino-cli to compile the firmware
   res.write(`data: compiling\n\n`);
   console.log(`[compiler] Starting arduino-cli compile in: ${targetDir}`);
 
@@ -283,7 +309,7 @@ router.get("/compile/stream/:cameraId", (req, res) => {
     "PartitionScheme=huge_app,FlashMode=dio,FlashFreq=80",
     "--output-dir",
     targetDir,
-    sketchDir
+    sketchDir,
   ]);
 
   arduinoProcess.stdout.on("data", (data) => {
@@ -297,12 +323,18 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   arduinoProcess.on("close", (code) => {
     clearInterval(heartbeat);
     if (code === 0) {
-      // Copy and rename compiled files to root directory
+      // Map and rename compiled binaries to the output folder
       try {
         const filesToMap = [
           { srcName: "camron_template.ino.bin", destName: "firmware.bin" },
-          { srcName: "camron_template.ino.bootloader.bin", destName: "bootloader.bin" },
-          { srcName: "camron_template.ino.partitions.bin", destName: "partitions.bin" }
+          {
+            srcName: "camron_template.ino.bootloader.bin",
+            destName: "bootloader.bin",
+          },
+          {
+            srcName: "camron_template.ino.partitions.bin",
+            destName: "partitions.bin",
+          },
         ];
 
         for (const mapping of filesToMap) {
@@ -310,28 +342,36 @@ router.get("/compile/stream/:cameraId", (req, res) => {
           const dest = path.join(targetDir, mapping.destName);
           if (fs.existsSync(src)) {
             fs.copyFileSync(src, dest);
-            console.log(`[compiler] Copiado ${mapping.srcName} para ${dest}`);
+            console.log(`[compiler] Copied ${mapping.srcName} to ${dest}`);
           } else {
             console.error(`[compiler] Missing compiled file: ${src}`);
           }
         }
 
-        // Also copy boot_app0.bin to targetDir root
-        const bootAppSrc = path.join(targetDir, "camron_template", "boot_app0.bin");
+        // Copy bootloader helper file
+        const bootAppSrc = path.join(
+          targetDir,
+          "camron_template",
+          "boot_app0.bin",
+        );
         const bootAppDest = path.join(targetDir, "boot_app0.bin");
         if (fs.existsSync(bootAppSrc)) {
           fs.copyFileSync(bootAppSrc, bootAppDest);
           console.log(`[compiler] Copied boot_app0.bin to ${bootAppDest}`);
         }
       } catch (copyErr) {
-        console.error("[compiler] Erro ao preparar binários compilados:", copyErr);
+        console.error("[compiler] Error preparing compiled binaries:", copyErr);
       }
 
       compilation.status = "success";
-      res.write(`event: complete\ndata: ${JSON.stringify({ cameraId, apiKey: compilation.apiKey })}\n\n`);
+      res.write(
+        `event: complete\ndata: ${JSON.stringify({ cameraId, apiKey: compilation.apiKey })}\n\n`,
+      );
     } else {
       compilation.status = "failed";
-      console.error(`[compiler] Compilation failed with exit code ${code}. Logs:\n${compilation.logs}`);
+      console.error(
+        `[compiler] Compilation failed with exit code ${code}. Logs:\n${compilation.logs}`,
+      );
       res.write(`event: error\ndata: Compilation failed.\n\n`);
     }
     res.end();
@@ -369,7 +409,9 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   // We check memory store or DB
   let hasRecord = !!compilation;
   if (!hasRecord) {
-    const camera = db.prepare("SELECT id FROM cameras WHERE id = ?").get(cameraId);
+    const camera = db
+      .prepare("SELECT id FROM cameras WHERE id = ?")
+      .get(cameraId);
     if (camera) hasRecord = true;
   }
 
@@ -383,7 +425,11 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   if (fs.existsSync(filePath)) {
     res.download(filePath, filename);
   } else {
-    res.status(404).json({ error: `File ${filename} not found. Please verify the compilation succeeded.` });
+    res
+      .status(404)
+      .json({
+        error: `File ${filename} not found. Please verify the compilation succeeded.`,
+      });
   }
 });
 
@@ -428,7 +474,9 @@ router.post("/confirm-flash", (req, res) => {
   if (compilation) {
     finalApiKey = compilation.apiKey;
   } else {
-    const camera = db.prepare("SELECT api_key FROM cameras WHERE id = ?").get(id);
+    const camera = db
+      .prepare("SELECT api_key FROM cameras WHERE id = ?")
+      .get(id);
     if (camera) {
       finalApiKey = camera.api_key;
     }
@@ -443,20 +491,27 @@ router.post("/confirm-flash", (req, res) => {
   }
 
   confirmations[id] = {
-    timestamp: new Date()
+    timestamp: new Date(),
   };
 
   try {
     // Record flash success in history
-    db.prepare("INSERT INTO flash_history (camera_id, success) VALUES (?, 1)").run(id);
-    
+    db.prepare(
+      "INSERT INTO flash_history (camera_id, success) VALUES (?, 1)",
+    ).run(id);
+
     // Also update camera seen details
-    db.prepare("UPDATE cameras SET last_seen = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(id);
+    db.prepare(
+      "UPDATE cameras SET last_seen = datetime('now'), updated_at = datetime('now') WHERE id = ?",
+    ).run(id);
 
     console.log(`[handshake] Camera ${id} successfully confirmed first boot.`);
     res.json({ ok: true });
   } catch (err) {
-    console.error("[handshake] Error registering confirmation in DB:", err.message);
+    console.error(
+      "[handshake] Error registering confirmation in DB:",
+      err.message,
+    );
     res.status(500).json({ error: "Internal error processing confirmation" });
   }
 });
@@ -490,20 +545,22 @@ router.get("/confirm-status/:cameraId", (req, res) => {
   const compilation = compilations[cameraId];
   if (compilation) {
     try {
-      const camera = db.prepare("SELECT last_seen FROM cameras WHERE id = ?").get(cameraId);
+      const camera = db
+        .prepare("SELECT last_seen FROM cameras WHERE id = ?")
+        .get(cameraId);
       if (camera && camera.last_seen) {
         const lastSeenDate = new Date(camera.last_seen);
         const compileDate = new Date(compilation.timestamp);
-        
+
         // If the registration happened after we initiated compile/flash, or was very recent (last 15s)
-        if (lastSeenDate >= compileDate || (new Date() - lastSeenDate) < 15000) {
-          return res.json({ 
-            confirmed: true
+        if (lastSeenDate >= compileDate || new Date() - lastSeenDate < 15000) {
+          return res.json({
+            confirmed: true,
           });
         }
       }
     } catch (err) {
-      console.error("[confirm-status] Erro ao verificar base de dados:", err.message);
+      console.error("[confirm-status] Error querying database:", err.message);
     }
   }
 
@@ -533,11 +590,16 @@ router.post("/cleanup/:cameraId", (req, res) => {
   try {
     if (fs.existsSync(targetDir)) {
       fs.rmSync(targetDir, { recursive: true, force: true });
-      console.log(`[compiler] Cleanup performed on camera temporary folder: ${cameraId}`);
+      console.log(
+        `[compiler] Cleanup performed on camera temporary folder: ${cameraId}`,
+      );
     }
     res.json({ success: true });
   } catch (err) {
-    console.error(`[compiler] Falha ao limpar pasta da câmara ${cameraId}:`, err);
+    console.error(
+      `[compiler] Failed to clean up directory for camera ${cameraId}:`,
+      err,
+    );
     res.status(500).json({ error: err.message });
   }
 });

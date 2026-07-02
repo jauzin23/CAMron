@@ -28,8 +28,10 @@ export const pt = {
   },
   restricted: {
     title: "Acesso Restrito",
-    descDefault: "Esta funcionalidade requer uma ligação USB direta para gravar firmware. Por favor, aceda a partir de um computador (Desktop).",
-    descNew: "A adição e configuração de novas câmaras requer a gravação de firmware via USB, funcionalidade apenas disponível em computadores (Desktop).",
+    descDefault:
+      "Esta funcionalidade requer uma ligação USB direta para gravar firmware. Por favor, aceda a partir de um computador (Desktop).",
+    descNew:
+      "A adição e configuração de novas câmaras requer a gravação de firmware via USB, funcionalidade apenas disponível em computadores (Desktop).",
     backButton: "Voltar ao Centro de Controlo",
   },
   wizard: {
@@ -53,21 +55,24 @@ export const pt = {
     connectUsb: "Ligar via USB",
     connectSuccess: "Dispositivo ligado com sucesso!",
     selectPort: "Selecione a Porta Série",
-    browserNotSupported: "O seu navegador não suporta a Web Serial API. Use o Chrome ou Edge.",
-    missingWifi: "Por favor, preencha o Wi-Fi e a Palavra-passe.",
+    browserNotSupported:
+      "O seu navegador não suporta a Web Serial API. Use o Chrome ou Edge.",
+    missingWifi: "Por favor, preencha o wifi e a Palavra-passe.",
     compiling: "A compilar firmware...",
     writing: "A gravar na câmara...",
     done: "Concluído!",
-    flashSuccess: "Software gravado com sucesso! Aguardando primeiro arranque...",
+    flashSuccess:
+      "Software gravado com sucesso! Aguardando primeiro arranque...",
     failed: "Falhou!",
     configureLater: "Configurar câmara mais tarde",
     connectCameraPrompt: "Ligue a sua câmara",
-    connectCameraDesc: "Para que a sua nova câmara comece a funcionar, necessitamos de a configurar através do cabo USB. Siga os passos abaixo.",
+    connectCameraDesc:
+      "Para que a sua nova câmara comece a funcionar, necessitamos de a configurar através do cabo USB. Siga os passos abaixo.",
     stepConnect: "Ligar",
     stepCompile: "Compilar",
     stepFlash: "Gravar",
     stepVerify: "Verificar",
-    enterWifiDetails: "Insira os dados da rede Wi-Fi",
+    enterWifiDetails: "Insira os dados da rede wifi",
     wifiDesc: "A câmara usará estes dados para se ligar à sua rede local.",
     wifiSsid: "Nome da Rede (SSID):",
     wifiPassword: "Palavra-passe:",
@@ -84,14 +89,18 @@ export const pt = {
     flashSuccessStatus: "Gravado com sucesso!",
     waitingHandshake: "A aguardar sinal de arranque da câmara...",
     cameraOnline: "Câmara ligada e online!",
-    portInUse: "A ligação USB parece estar em uso por outro programa. Feche outros programas e tente novamente.",
+    portInUse:
+      "A ligação USB parece estar em uso por outro programa. Feche outros programas e tente novamente.",
     usbCancelled: "Ligação USB cancelada pelo utilizador.",
-    cameraNotFound: "Não foi possível encontrar a câmara. Verifique se o cabo está bem inserido.",
+    cameraNotFound:
+      "Não foi possível encontrar a câmara. Verifique se o cabo está bem inserido.",
     compileInitFailed: "Falha ao iniciar compilação.",
-    compilePrepareError: "Ocorreu um erro a preparar o software da câmara. Tente de novo.",
+    compilePrepareError:
+      "Ocorreu um erro a preparar o software da câmara. Tente de novo.",
     compileInternalError: "Ocorreu um erro interno. Tente mais tarde.",
     fileDownloadError: "Falha ao obter ficheiro",
-    flashWriteError: "Ocorreu um erro a gravar na câmara. Verifique o cabo e tente novamente.",
+    flashWriteError:
+      "Ocorreu um erro a gravar na câmara. Verifique o cabo e tente novamente.",
     handshakeDbError: "Erro ao verificar base de dados:",
     flashFailedStatus: "Não foi possível concluir a configuração.",
     setupDone: "Configuração concluída!",
@@ -129,7 +138,8 @@ export const pt = {
     grid4: "Grelha 2x2",
     grid9: "Grelha 3x3",
     selectCamera: "Selecione uma Câmara",
-    chooseFeed: "Mapeie um feed de câmara a este painel ou use as opções de divisão",
+    chooseFeed:
+      "Mapeie um feed de câmara a este painel ou use as opções de divisão",
     cameraInaccessible: "Câmara Inacessível",
     cameraInaccessibleDesc: "A câmara foi removida ou não está disponível.",
     connectionInterrupted: "LIGAÇÃO INTERROMPIDA",
@@ -147,5 +157,15 @@ export const pt = {
     notFound: "Câmara não encontrada.",
     loadingCamera: "A carregar câmara...",
     unknownError: "Erro desconhecido.",
+  },
+  flash: {
+    eyebrow: "Configuração",
+    title: 'Gravar Firmware em "{name}"',
+    description: "Configure a sua câmara e ligue-a à rede Wi-Fi utilizando o cabo USB.",
+    restrictedTitle: "Gravação de Firmware Restrita",
+    restrictedDesc: "A gravação de firmware requer ligação física via USB utilizando a Web Serial API, funcionalidade apenas disponível em browsers de computadores (Desktop).",
+    loading: "A carregar dados...",
+    loadError: "Erro ao carregar os dados. O backend está a correr?",
+    backToControl: "Voltar ao Centro de Controlo",
   },
 };
