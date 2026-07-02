@@ -38,7 +38,7 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
           ? React.cloneElement(child, {
-              onClick: () => onValueChange(child.props.value),
+              onClick: () => onValueChange((child.props as any).value),
             } as any)
           : child
       )}
