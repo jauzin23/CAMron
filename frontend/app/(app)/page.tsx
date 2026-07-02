@@ -79,20 +79,35 @@ export default function ControlCenterPage() {
   useEffect(() => {
     void loadCameras(true);
 
+    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+    const eventSource = new EventSource(
+      `${backendUrl}/api/cameras/events?token=${encodeURIComponent(sseToken)}`,
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setCameras(data);
+        setCamerasLoading(false);
+      } catch (err) {
+        console.error("Failed to parse cameras SSE data:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("Cameras SSE connection error:", err);
+    };
+
     // Refresh status when the tab gets focused
     const handleFocus = () => {
       void loadCameras(false);
     };
     window.addEventListener("focus", handleFocus);
 
-    // Poll every 5 seconds to keep camera status up to date
-    const interval = setInterval(() => {
-      void loadCameras(false);
-    }, 5000);
-
     return () => {
       window.removeEventListener("focus", handleFocus);
-      clearInterval(interval);
+      eventSource.close();
     };
   }, [loadCameras]);
 

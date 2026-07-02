@@ -272,27 +272,38 @@ export default function LivePage() {
   const [realCameras, setRealCameras] = useState<Camera[]>([]);
   const availableCameras: Camera[] = realCameras;
 
-  // Fetch real cameras from DB on mount and poll every 5 seconds to keep states in sync
+  // Fetch real cameras from DB on mount and listen to SSE events to keep states in sync
   useEffect(() => {
-    const fetchCams = () => {
-      getCameras()
-        .then((dbCams) => {
-          const mapped: Camera[] = dbCams.map((c) => ({
+    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+    const eventSource = new EventSource(
+      `${backendUrl}/api/cameras/events?token=${encodeURIComponent(sseToken)}`,
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const dbCams = JSON.parse(event.data);
+        if (Array.isArray(dbCams)) {
+          const mapped: Camera[] = dbCams.map((c: any) => ({
             id: c.id,
             name: c.name,
             flash_active: c.flash_active === true || (c.flash_active as any) === 1,
             last_seen: c.last_seen,
           }));
           setRealCameras(mapped);
-        })
-        .catch(() => {
-          // Backend unreachable
-        });
+        }
+      } catch (err) {
+        console.error("Failed to parse cameras SSE data in live view:", err);
+      }
     };
 
-    fetchCams(); // Initial load
-    const interval = setInterval(fetchCams, 5000);
-    return () => clearInterval(interval);
+    eventSource.onerror = (err) => {
+      console.error("Cameras SSE connection error in live view:", err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, []);
 
   // Dynamically initialize layout if localStorage is empty once realCameras are fetched

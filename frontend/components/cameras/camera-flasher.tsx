@@ -131,6 +131,7 @@ export function CameraFlasher({
     "waiting" | "timeout"
   >("waiting");
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
   // Load camera props if provided
@@ -211,6 +212,7 @@ export function CameraFlasher({
   useEffect(() => {
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (eventSourceRef.current) eventSourceRef.current.close();
     };
   }, []);
 
@@ -581,28 +583,37 @@ export function CameraFlasher({
     setVerificationStatus("waiting");
     setErrorMsg("");
 
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
 
-    pollIntervalRef.current = setInterval(async () => {
+    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
+    const eventSource = new EventSource(
+      `${BACKEND_URL}/api/confirm-status/${targetCameraId}/events?token=${encodeURIComponent(sseToken)}`,
+    );
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
       try {
-        const res = await authFetch(
-          `${BACKEND_URL}/api/confirm-status/${targetCameraId}`,
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (data.confirmed) {
-            if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-            setStep("success");
-            toast.success(t("flasher.cameraOnline"));
-          }
+        const data = JSON.parse(event.data);
+        if (data.confirmed) {
+          eventSource.close();
+          eventSourceRef.current = null;
+          setStep("success");
+          toast.success(t("flasher.cameraOnline"));
         }
       } catch (err) {}
-    }, 2000);
+    };
+
+    eventSource.onerror = () => {
+      // EventSource automatically retries on error
+    };
 
     // Timeout verification after 60 seconds
     setTimeout(() => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
         setVerificationStatus("timeout");
       }
     }, 60000);
@@ -618,9 +629,9 @@ export function CameraFlasher({
     setStep("connect");
     setFlashProgress(0);
     setVerificationStatus("waiting");
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
   };
 

@@ -8,6 +8,7 @@ const path = require("path");
 const os = require("os");
 
 const db = require("../db/connection");
+const cameraEmitter = require("../utils/emitter");
 const router = express.Router();
 
 const ARDUINO_CLI_PATH =
@@ -506,6 +507,8 @@ router.post("/confirm-flash", (req, res) => {
     ).run(id);
 
     console.log(`[handshake] Camera ${id} successfully confirmed first boot.`);
+    cameraEmitter.emit(`confirm-${id}`);
+    cameraEmitter.emit("change");
     res.json({ ok: true });
   } catch (err) {
     console.error(
@@ -514,6 +517,77 @@ router.post("/confirm-flash", (req, res) => {
     );
     res.status(500).json({ error: "Internal error processing confirmation" });
   }
+});
+
+/**
+ * @swagger
+ * /api/confirm-status/{cameraId}/events:
+ *   get:
+ *     summary: Stream Server-Sent Events (SSE) for camera confirm status
+ *     tags: [Compile]
+ *     parameters:
+ *       - in: path
+ *         name: cameraId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Event stream (text/event-stream)
+ */
+router.get("/confirm-status/:cameraId/events", (req, res) => {
+  const { cameraId } = req.params;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const isConfirmed = () => {
+    if (confirmations[cameraId]) return true;
+
+    const compilation = compilations[cameraId];
+    if (compilation) {
+      try {
+        const camera = db
+          .prepare("SELECT last_seen FROM cameras WHERE id = ?")
+          .get(cameraId);
+        if (camera && camera.last_seen) {
+          const lastSeenDate = new Date(camera.last_seen);
+          const compileDate = new Date(compilation.timestamp);
+          if (lastSeenDate >= compileDate || new Date() - lastSeenDate < 15000) {
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error("[confirm-status SSE] Error querying database:", err.message);
+      }
+    }
+    return false;
+  };
+
+  if (isConfirmed()) {
+    res.write(`data: ${JSON.stringify({ confirmed: true })}\n\n`);
+    res.end();
+    return;
+  }
+
+  const onConfirm = () => {
+    res.write(`data: ${JSON.stringify({ confirmed: true })}\n\n`);
+    res.end();
+  };
+
+  cameraEmitter.once(`confirm-${cameraId}`, onConfirm);
+
+  const heartbeat = setInterval(() => {
+    res.write(":\n\n");
+  }, 15000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    cameraEmitter.off(`confirm-${cameraId}`, onConfirm);
+    res.end();
+  });
 });
 
 /**
@@ -566,6 +640,8 @@ router.get("/confirm-status/:cameraId", (req, res) => {
 
   res.json({ confirmed: false });
 });
+
+
 
 /**
  * @swagger

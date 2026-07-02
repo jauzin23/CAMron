@@ -17,7 +17,7 @@ export interface FlashStep {
 
 interface FlashLayoutProps {
   /** Which GIF to display — "asleep" before compile, "working" after */
-  mascotState: MascotState;
+  mascotState?: MascotState;
   /** Optional camera name shown in the left panel header */
   cameraName?: string;
   /** Step labels and statuses for the left-panel progress indicator */

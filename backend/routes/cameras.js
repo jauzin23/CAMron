@@ -7,6 +7,7 @@ const net = require("net");
 const http = require("http");
 
 const db = require("../db/connection");
+const cameraEmitter = require("../utils/emitter");
 
 const router = express.Router();
 
@@ -52,17 +53,33 @@ function pingCamera(ip, port = 81, timeout = 2000) {
 }
 
 // Ping cameras every 5 seconds to update their online status
-setInterval(() => {
+setInterval(async () => {
   try {
-    const cameras = db.prepare("SELECT id, ip FROM cameras WHERE ip IS NOT NULL AND ip != ''").all();
-    cameras.forEach(async (c) => {
-      const isOnline = await pingCamera(c.ip, 81, 2000);
-      if (isOnline) {
-        db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(now(), c.id);
-      } else {
-        db.prepare("UPDATE cameras SET flash_active = 0 WHERE id = ?").run(c.id);
-      }
-    });
+    const cameras = db.prepare("SELECT id, ip, last_seen, flash_active FROM cameras WHERE ip IS NOT NULL AND ip != ''").all();
+    let changed = false;
+    await Promise.all(
+      cameras.map(async (c) => {
+        const isOnline = await pingCamera(c.ip, 81, 2000);
+        if (isOnline) {
+          db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(now(), c.id);
+          changed = true;
+        } else {
+          const wasActive = c.flash_active === 1;
+          let wasOnline = false;
+          if (c.last_seen) {
+            const diff = (Date.now() - new Date(c.last_seen).getTime()) / 1000;
+            if (diff < 10) wasOnline = true;
+          }
+          if (wasActive || wasOnline) {
+            db.prepare("UPDATE cameras SET flash_active = 0 WHERE id = ?").run(c.id);
+            changed = true;
+          }
+        }
+      })
+    );
+    if (changed) {
+      cameraEmitter.emit("change");
+    }
   } catch (err) {
     console.error("[cameras background ping] Error:", err.message);
   }
@@ -132,6 +149,7 @@ router.post("/", (req, res) => {
     ).run(id, api_key, name.trim(), ts, ts);
 
     const camera = db.prepare("SELECT * FROM cameras WHERE id = ?").get(id);
+    cameraEmitter.emit("change");
     res.status(201).json({
       ...camera,
       flash_active: camera.flash_active === 1,
@@ -140,6 +158,57 @@ router.post("/", (req, res) => {
     console.error("[cameras] POST /:", err.message);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+/**
+ * @swagger
+ * /api/cameras/events:
+ *   get:
+ *     summary: Stream Server-Sent Events (SSE) for camera list updates
+ *     tags: [Cameras]
+ *     responses:
+ *       200:
+ *         description: Event stream (text/event-stream)
+ */
+router.get("/events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const sendCameras = () => {
+    try {
+      const cameras = db
+        .prepare("SELECT * FROM cameras ORDER BY created_at DESC")
+        .all();
+      const result = cameras.map((c) => ({
+        ...c,
+        flash_active: c.flash_active === 1,
+      }));
+      res.write(`data: ${JSON.stringify(result)}\n\n`);
+    } catch (err) {
+      console.error("[cameras SSE] Error fetching cameras:", err.message);
+    }
+  };
+
+  // Send initial data immediately
+  sendCameras();
+
+  const onChange = () => {
+    sendCameras();
+  };
+
+  cameraEmitter.on("change", onChange);
+
+  const heartbeat = setInterval(() => {
+    res.write(":\n\n");
+  }, 15000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    cameraEmitter.off("change", onChange);
+    res.end();
+  });
 });
 
 /**
@@ -219,6 +288,7 @@ router.put("/:id", (req, res) => {
     const updated = db
       .prepare("SELECT * FROM cameras WHERE id = ?")
       .get(req.params.id);
+    cameraEmitter.emit("change");
     res.json({ ...updated, flash_active: updated.flash_active === 1 });
   } catch (err) {
     console.error("[cameras] PUT /:id:", err.message);
@@ -250,6 +320,7 @@ router.delete("/:id", (req, res) => {
     if (!camera) return res.status(404).json({ error: "Camera not found" });
 
     db.prepare("DELETE FROM cameras WHERE id = ?").run(req.params.id);
+    cameraEmitter.emit("change");
     res.status(204).send();
   } catch (err) {
     console.error("[cameras] DELETE /:id:", err.message);
@@ -315,6 +386,7 @@ router.post("/register", (req, res) => {
     }
 
     console.log(`[cameras] ESP32 register: id=${id} ip=${ip}`);
+    cameraEmitter.emit("change");
     res.json({ ok: true, message: `Camera '${id}' registered at ${ip}` });
   } catch (err) {
     console.error("[cameras] POST /register:", err.message);
@@ -375,6 +447,7 @@ router.post("/:id/flash", (req, res) => {
           db.prepare(
             "UPDATE cameras SET flash_active = ?, updated_at = ? WHERE id = ?",
           ).run(active, now(), id);
+          cameraEmitter.emit("change");
           res.json({ ok: true, flash_active: active === 1 });
         } else {
           res
