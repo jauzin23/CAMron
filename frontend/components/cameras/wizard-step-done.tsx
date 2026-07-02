@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Check, Plus, LayoutDashboard } from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 interface WizardStepDoneProps {
   cameraName: string;
@@ -16,6 +17,7 @@ export function WizardStepDone({
   onAddAnother,
 }: WizardStepDoneProps) {
   const router = useRouter();
+  const { t } = useLanguage();
 
   return (
     <div className="flex flex-col items-center gap-8 py-4 text-center">
@@ -27,13 +29,13 @@ export function WizardStepDone({
       {/* Text */}
       <div className="flex flex-col gap-2">
         <h2 className="text-xl font-semibold text-foreground">
-          {mode === "add" ? "Câmara adicionada!" : "Câmara atualizada!"}
+          {mode === "add" ? t("wizard.addedSuccessTitle") : t("wizard.updatedSuccessTitle")}
         </h2>
         <p className="text-sm text-muted-foreground max-w-xs">
           <span className="font-medium text-foreground">"{cameraName}"</span>{" "}
           {mode === "add"
-            ? "foi registada com sucesso."
-            : "foi atualizada com sucesso."}
+            ? t("wizard.addedSuccessDesc")
+            : t("wizard.updatedSuccessDesc")}
         </p>
       </div>
 
@@ -41,7 +43,7 @@ export function WizardStepDone({
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <Button onClick={() => router.push("/")} className="gap-2 w-full">
           <LayoutDashboard className="h-4 w-4" />
-          Ir para o Centro de Controlo
+          {t("wizard.backToControl")}
         </Button>
 
         {mode === "add" && onAddAnother && (
@@ -51,7 +53,7 @@ export function WizardStepDone({
             className="gap-2 w-full"
           >
             <Plus className="h-4 w-4" />
-            Adicionar outra câmara
+            {t("wizard.addAnother")}
           </Button>
         )}
       </div>

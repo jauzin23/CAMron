@@ -37,9 +37,10 @@ import {
   type Camera,
 } from "@/lib/api";
 import { useDevice } from "@/lib/device-context";
+import { useLanguage } from "@/lib/language-context";
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("pt-PT", {
+function formatDateTime(value: string, lang: string) {
+  return new Intl.DateTimeFormat(lang === "pt" ? "pt-PT" : "en-US", {
     dateStyle: "short",
   }).format(new Date(value));
 }
@@ -58,6 +59,7 @@ function getCameraStatus(
 export default function ControlCenterPage() {
   const router = useRouter();
   const { isDesktop } = useDevice();
+  const { t, language } = useLanguage();
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [camerasLoading, setCamerasLoading] = useState(true);
 
@@ -68,11 +70,11 @@ export default function ControlCenterPage() {
       const data = await getCameras();
       setCameras(data);
     } catch (err) {
-      if (showLoading) toast.error("Erro ao carregar câmaras. O backend está a correr?");
+      if (showLoading) toast.error(t("dashboard.loadCamerasError"));
     } finally {
       if (showLoading) setCamerasLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadCameras(true);
@@ -96,16 +98,16 @@ export default function ControlCenterPage() {
 
   const handleCopyIP = (ip: string, name: string) => {
     if (!ip) {
-      toast.error(`A câmara "${name}" ainda não registou um IP.`);
+      toast.error(t("dashboard.cameraNoIpError", { name }));
       return;
     }
     navigator.clipboard.writeText(ip);
-    toast.success(`IP da câmara "${name}" copiado: ${ip}`);
+    toast.success(`${t("dashboard.ipCopied")} (${ip})`);
   };
 
   const handleCopyID = (id: string, name: string) => {
     navigator.clipboard.writeText(id);
-    toast.success(`ID da câmara "${name}" copiado.`);
+    toast.success(`${t("common.success")} (ID: ${name})`);
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -114,16 +116,16 @@ export default function ControlCenterPage() {
     
     try {
       await deleteCamera(id);
-      toast.success(`Câmara "${name}" eliminada.`);
+      toast.success(t("common.success"));
       void loadCameras(false);
     } catch {
-      toast.error("Erro ao eliminar câmara.");
+      toast.error(t("common.error"));
       void loadCameras(false);
     }
   };
 
   const handleToggleFlash = async (camera: Camera) => {
-    // Verdadeiro update otimista: muda a UI imediatamente antes do pedido
+    // Optimistic update
     const previousState = camera.flash_active;
     setCameras((prev) =>
       prev.map((c) =>
@@ -133,18 +135,20 @@ export default function ControlCenterPage() {
 
     try {
       const result = await toggleFlash(camera.id);
-      const label = result.flash_active ? "ligada" : "desligada";
-      toast.success(`Lanterna de "${camera.name}" ${label}.`);
+      toast.success(
+        result.flash_active
+          ? `${camera.name}: ${t("dashboard.flashActive")}`
+          : `${camera.name}: ${t("dashboard.flashInactive")}`
+      );
       
-      // Garante que o estado reflete exatamente o que o backend retornou
       setCameras((prev) =>
         prev.map((c) =>
           c.id === camera.id ? { ...c, flash_active: result.flash_active } : c,
         ),
       );
     } catch {
-      toast.error("Erro ao controlar a lanterna.");
-      // Reverte se houver erro
+      toast.error(t("common.error"));
+      // Revert on error
       setCameras((prev) =>
         prev.map((c) =>
           c.id === camera.id ? { ...c, flash_active: previousState } : c,
@@ -156,7 +160,7 @@ export default function ControlCenterPage() {
   const columns: ColumnDef<Camera>[] = [
     {
       accessorKey: "name",
-      header: () => <div className="pl-2">Câmara</div>,
+      header: () => <div className="pl-2">{t("dashboard.subtitle")}</div>,
       cell: ({ row }) => {
         const camera = row.original;
         return (
@@ -170,14 +174,14 @@ export default function ControlCenterPage() {
     },
     {
       id: "status",
-      header: "Estado",
+      header: t("dashboard.statusLabel"),
       cell: ({ row }) => {
         const status = getCameraStatus(row.original);
         if (status === "unconfigured") {
           return (
             <div className="flex items-center gap-2">
               <StatusDot variant="warning" size="md" />
-              <span className="font-semibold text-amber-500">Por gravar</span>
+              <span className="font-semibold text-amber-500">{t("dashboard.statusUnconfigured")}</span>
             </div>
           );
         }
@@ -191,7 +195,7 @@ export default function ControlCenterPage() {
                 isOnline ? "text-emerald-400" : "text-zinc-500",
               )}
             >
-              {isOnline ? "Online" : "Offline"}
+              {isOnline ? t("dashboard.statusOnline") : t("dashboard.statusOffline")}
             </span>
           </div>
         );
@@ -211,7 +215,7 @@ export default function ControlCenterPage() {
     },
     {
       accessorKey: "flash_active",
-      header: "Lanterna",
+      header: t("live.toggleFlash"),
       cell: ({ row }) => {
         const camera = row.original;
         const status = getCameraStatus(camera);
@@ -226,10 +230,10 @@ export default function ControlCenterPage() {
               )}
               onClick={() => isDesktop && router.push(`/cameras/flash?id=${camera.id}`)}
               disabled={!isDesktop}
-              title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
+              title={!isDesktop ? t("restricted.descNew") : undefined}
             >
               <Cpu className="h-3.5 w-3.5 mr-1" />
-              Gravar Firmware
+              {t("wizard.flash")}
             </Button>
           );
         }
@@ -244,11 +248,11 @@ export default function ControlCenterPage() {
               "overflow-hidden rounded-full transition-transform",
               isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"
             )}
-            title={isOffline ? "Câmara offline" : "Clica para ligar/desligar"}
+            title={isOffline ? t("dashboard.statusOffline") : t("live.toggleFlash")}
           >
             <div
               className={cn(
-                "relative inline-flex items-center justify-center w-[92px] h-[22px] rounded-full border text-xs font-semibold select-none transition-all duration-300",
+                "relative inline-flex items-center justify-center w-[96px] h-[22px] rounded-full border text-xs font-semibold select-none transition-all duration-300",
                 active 
                   ? "border-zinc-200/30 bg-zinc-200/15 text-zinc-100 shadow-[0_0_8px_rgba(228,228,231,0.15)]" 
                   : "border-zinc-800 bg-zinc-950 text-zinc-500 shadow-none"
@@ -265,7 +269,7 @@ export default function ControlCenterPage() {
                     className="flex items-center gap-1.5"
                   >
                     <Lightbulb className="h-3.5 w-3.5 fill-current -mt-[1px]" />
-                    <span className="leading-none mt-[1px]">Ligado</span>
+                    <span className="leading-none mt-[1px]">{t("dashboard.flashActive")}</span>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -277,7 +281,7 @@ export default function ControlCenterPage() {
                     className="flex items-center gap-1.5"
                   >
                     <LightbulbOff className="h-3.5 w-3.5 -mt-[1px]" />
-                    <span className="leading-none mt-[1px]">Desligado</span>
+                    <span className="leading-none mt-[1px]">{t("dashboard.flashInactive")}</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -288,19 +292,19 @@ export default function ControlCenterPage() {
     },
     {
       accessorKey: "created_at",
-      header: "Registo",
+      header: t("dashboard.activityLabel"),
       cell: ({ row }) => {
         const dateStr = row.getValue("created_at") as string;
         return (
           <span className="text-muted-foreground">
-            {formatDateTime(dateStr)}
+            {formatDateTime(dateStr, language)}
           </span>
         );
       },
     },
     {
       id: "actions",
-      header: () => <div className="text-right pr-2">Ações</div>,
+      header: () => <div className="text-right pr-2">{t("dashboard.actionsLabel")}</div>,
       cell: ({ row }) => {
         const camera = row.original;
         const status = getCameraStatus(camera);
@@ -315,7 +319,7 @@ export default function ControlCenterPage() {
                   className="h-8 w-8 p-0 hover:bg-zinc-800"
                 >
                   <MoreHorizontal className="h-4 w-4" />
-                  <span className="sr-only">Abrir menu</span>
+                  <span className="sr-only">Actions</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -327,14 +331,14 @@ export default function ControlCenterPage() {
                   className="cursor-pointer gap-2 font-mono text-xs focus:bg-zinc-900 focus:text-zinc-50"
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Copiar ID</span>
+                  <span>Copy ID</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleCopyIP(camera.ip, camera.name)}
                   className="cursor-pointer gap-2 font-mono text-xs focus:bg-zinc-900 focus:text-zinc-50"
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Copiar IP</span>
+                  <span>Copy IP</span>
                 </DropdownMenuItem>
                 
                 {!(status === "unconfigured") && (
@@ -349,12 +353,12 @@ export default function ControlCenterPage() {
                     {camera.flash_active ? (
                       <>
                         <LightbulbOff className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>Desligar Lanterna</span>
+                        <span>{t("dashboard.flashInactive")}</span>
                       </>
                     ) : (
                       <>
                         <Lightbulb className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>Ligar Lanterna</span>
+                        <span>{t("dashboard.flashActive")}</span>
                       </>
                     )}
                   </DropdownMenuItem>
@@ -368,24 +372,24 @@ export default function ControlCenterPage() {
                     "gap-2 text-xs focus:bg-zinc-900",
                     !isDesktop ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
                   )}
-                  title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
+                  title={!isDesktop ? t("restricted.descNew") : undefined}
                 >
                   <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Gravar Firmware</span>
+                  <span>{t("wizard.flash")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => router.push(`/cameras/edit?id=${camera.id}`)}
                   className="cursor-pointer gap-2 text-xs focus:bg-zinc-900"
                 >
                   <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Editar</span>
+                  <span>{t("dashboard.editCamera")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleDelete(camera.id, camera.name)}
                   className="cursor-pointer gap-2 text-xs focus:bg-zinc-900 text-rose-500 focus:text-rose-400"
                 >
                   <Trash2 className="h-3.5 w-3.5 text-rose-500/70" />
-                  <span>Eliminar</span>
+                  <span>{t("dashboard.deleteCamera")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -400,11 +404,11 @@ export default function ControlCenterPage() {
       <PageHeader
         title={
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>Bem-vindo ao</span>
-            <AuroraText>Centro de Controlo</AuroraText>
+            <span>{language === "pt" ? "Bem-vindo ao" : "Welcome to"}</span>
+            <AuroraText>{t("dashboard.title")}</AuroraText>
           </div>
         }
-        description="Gerencie e monitorize as tuas câmaras."
+        description={language === "pt" ? "Gerencie e monitorize as tuas câmaras." : "Manage and monitor your cameras."}
       />
 
       {/* Camera Management */}
@@ -414,7 +418,7 @@ export default function ControlCenterPage() {
           data={cameras}
           isLoading={camerasLoading}
           filterColumnKey="name"
-          filterPlaceholder="Pesquisar câmara..."
+          filterPlaceholder={language === "pt" ? "Pesquisar câmara..." : "Search camera..."}
           actionButton={
             <Button
               className={cn(
@@ -423,10 +427,10 @@ export default function ControlCenterPage() {
               )}
               onClick={() => isDesktop && router.push("/cameras/new")}
               disabled={camerasLoading || !isDesktop}
-              title={!isDesktop ? "Apenas disponível em Desktop" : undefined}
+              title={!isDesktop ? t("restricted.descNew") : undefined}
             >
               <Plus className="h-4 w-4" />
-              Adicionar Câmara
+              {t("dashboard.buttonAddCamera")}
             </Button>
           }
         />

@@ -6,6 +6,7 @@ import { MonitorX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HyperText } from "@/components/ui/hyper-text";
 import { WarpBackground } from "@/components/ui/warp-background";
+import { useLanguage } from "@/lib/language-context";
 
 interface DeviceRestrictedPageProps {
   title?: string;
@@ -13,10 +14,14 @@ interface DeviceRestrictedPageProps {
 }
 
 export function DeviceRestrictedPage({
-  title = "Acesso Restrito",
-  description = "Esta funcionalidade requer uma ligação USB direta para gravar firmware. Por favor, aceda a partir de um computador (Desktop).",
+  title,
+  description,
 }: DeviceRestrictedPageProps) {
   const router = useRouter();
+  const { t } = useLanguage();
+
+  const displayTitle = title || t("restricted.title");
+  const displayDescription = description || t("restricted.descDefault");
 
   return (
     <div className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-3.5rem)] bg-background">
@@ -29,18 +34,18 @@ export function DeviceRestrictedPage({
           className="text-2xl md:text-3xl font-extrabold tracking-tight text-white mb-4 uppercase"
           duration={800}
         >
-          {title}
+          {displayTitle}
         </HyperText>
 
         <p className="text-sm md:text-base text-zinc-400 max-w-sm mb-8 leading-relaxed">
-          {description}
+          {displayDescription}
         </p>
 
         <Button
           onClick={() => router.push("/")}
           className="h-10 px-6 font-semibold cursor-pointer shadow-md shadow-primary/10 transition-all hover:scale-105 active:scale-95"
         >
-          Voltar ao Centro de Controlo
+          {t("restricted.backButton")}
         </Button>
       </WarpBackground>
     </div>

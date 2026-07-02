@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ArrowRight } from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 interface WizardStepIdentityProps {
   defaultName?: string;
@@ -22,12 +23,13 @@ export function WizardStepIdentity({
   const [name, setName] = useState(defaultName);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLanguage();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("O nome da câmara é obrigatório.");
+      setError(t("wizard.cameraNameRequired"));
       return;
     }
     setError(null);
@@ -35,7 +37,7 @@ export function WizardStepIdentity({
     try {
       await onNext(trimmed);
     } catch (err: any) {
-      setError(err?.message ?? "Ocorreu um erro. Tenta novamente.");
+      setError(err?.message ?? t("wizard.genericError"));
     } finally {
       setLoading(false);
     }
@@ -46,13 +48,13 @@ export function WizardStepIdentity({
       <div className="flex flex-col gap-2">
         <Label htmlFor="camera-name" className="text-sm font-medium">
           <span>
-            Nome da câmara:<span className="text-rose-500 ml-0.5">*</span>
+            {t("wizard.cameraNameLabel")}:<span className="text-rose-500 ml-0.5">*</span>
           </span>
         </Label>
         <Input
           id="camera-name"
           type="text"
-          placeholder='ex: "Entrada Principal", "Garagem"'
+          placeholder={t("wizard.cameraNamePlaceholder")}
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -75,7 +77,7 @@ export function WizardStepIdentity({
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <>
-              {submitLabel ?? (isEdit ? "Guardar" : "Continuar")}
+              {submitLabel ?? (isEdit ? t("wizard.save") : t("wizard.continue"))}
               {!isEdit && <ArrowRight className="h-4 w-4" />}
             </>
           )}

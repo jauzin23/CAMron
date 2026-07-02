@@ -34,6 +34,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCameras, toggleFlash } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
@@ -254,6 +255,7 @@ function findCameraId(node: LayoutNode, targetId: string): string | null {
 }
 
 export default function LivePage() {
+  const { t, language } = useLanguage();
   const [layout, setLayout] = useState<LayoutNode>(PRESETS["2x2"]);
   const [layoutType, setLayoutType] = useState<string>("2x2");
   const [fullscreenId, setFullscreenId] = useState<string | null>(null);
@@ -460,7 +462,7 @@ export default function LivePage() {
           <div className="flex flex-row items-center justify-between shrink-0 px-2 pt-1 gap-2">
             <div>
               <h1 className="text-sm sm:text-base font-semibold tracking-tight text-white">
-                Mosaico
+                {language === "pt" ? "Mosaico" : "Mosaic"}
               </h1>
             </div>
 
@@ -492,10 +494,14 @@ export default function LivePage() {
                     className="h-6 text-[10px] gap-1 px-2 border-zinc-800 text-zinc-400 hover:text-white bg-zinc-900 capitalize shrink-0"
                   >
                     <Eye className="h-3 w-3" />
-                    <span className="hidden sm:inline">Visual:</span>{" "}
+                    <span className="hidden sm:inline">{language === "pt" ? "Visual:" : "Visual:"}</span>{" "}
                     {effects.colorMode === "normal"
                       ? "Normal"
-                      : effects.colorMode}
+                      : effects.colorMode === "night-vision"
+                      ? (language === "pt" ? "Visão Noturna" : "Night Vision")
+                      : effects.colorMode === "amber"
+                      ? (language === "pt" ? "Âmbar" : "Amber")
+                      : (language === "pt" ? "Térmico" : "Thermal")}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -519,7 +525,7 @@ export default function LivePage() {
                       }))
                     }
                   >
-                    Visão Noturna
+                    {language === "pt" ? "Visão Noturna" : "Night Vision"}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="hover:bg-zinc-900 focus:bg-zinc-900"
@@ -527,7 +533,7 @@ export default function LivePage() {
                       setEffects((prev) => ({ ...prev, colorMode: "amber" }))
                     }
                   >
-                    Âmbar
+                    {language === "pt" ? "Âmbar" : "Amber"}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="hover:bg-zinc-900 focus:bg-zinc-900"
@@ -535,7 +541,7 @@ export default function LivePage() {
                       setEffects((prev) => ({ ...prev, colorMode: "thermal" }))
                     }
                   >
-                    Térmico
+                    {language === "pt" ? "Térmico" : "Thermal"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -604,6 +610,7 @@ function CameraCell({
   onToggleFlash,
 }: CameraCellProps) {
   const { getToken } = useAuth();
+  const { t, language } = useLanguage();
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -657,13 +664,12 @@ function CameraCell({
           </div>
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-zinc-300">
-              Sem Sinal de Vídeo
-            </h3>
-            <p className="text-xs text-zinc-500">
-              Mapeie um feed de câmara a este painel ou use as opções de divisão
-              abaixo.
-            </p>
-          </div>
+                {language === "pt" ? "Sem Sinal de Vídeo" : "No Video Signal"}
+              </h3>
+              <p className="text-xs text-zinc-500">
+                {t("live.chooseFeed")}
+              </p>
+            </div>
 
           <DropdownMenu onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
@@ -672,7 +678,7 @@ function CameraCell({
                 variant="outline"
                 className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:text-white text-xs h-8 transition-colors"
               >
-                Mapear Feed
+                {language === "pt" ? "Mapear Feed" : "Map Feed"}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-zinc-950 border-zinc-850 text-white w-56">
@@ -702,7 +708,7 @@ function CameraCell({
             variant="ghost"
             className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
             onClick={() => onSplit("horizontal")}
-            title="Dividir Horizontal"
+            title={language === "pt" ? "Dividir Horizontal" : "Split Horizontally"}
           >
             <Columns className="h-3.5 w-3.5" />
           </Button>
@@ -711,7 +717,7 @@ function CameraCell({
             variant="ghost"
             className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
             onClick={() => onSplit("vertical")}
-            title="Dividir Vertical"
+            title={language === "pt" ? "Dividir Vertical" : "Split Vertically"}
           >
             <Rows className="h-3.5 w-3.5" />
           </Button>
@@ -721,7 +727,7 @@ function CameraCell({
               variant="ghost"
               className="h-6 w-6 hover:bg-zinc-800 rounded text-red-400 hover:text-red-300 hover:bg-red-950/20 transition-colors"
               onClick={onDelete}
-              title="Remover Painel"
+              title={language === "pt" ? "Remover Painel" : "Remove Panel"}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -767,10 +773,10 @@ function CameraCell({
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-semibold text-red-400/90">
-                  Câmara Inacessível
+                  {t("live.cameraInaccessible")}
                 </h3>
                 <p className="text-xs text-zinc-500">
-                  A câmara foi removida ou não está disponível.
+                  {t("live.cameraInaccessibleDesc")}
                 </p>
               </div>
 
@@ -781,7 +787,7 @@ function CameraCell({
                   className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:text-white text-xs h-8 transition-colors"
                   onClick={() => onSelectCamera(null)}
                 >
-                  Limpar Painel
+                  {language === "pt" ? "Limpar Painel" : "Clear Panel"}
                 </Button>
 
                 <DropdownMenu onOpenChange={setIsDropdownOpen}>
@@ -791,7 +797,7 @@ function CameraCell({
                       variant="default"
                       className="bg-white text-black hover:bg-zinc-200 text-xs h-8 transition-colors"
                     >
-                      Mapear Feed
+                      {language === "pt" ? "Mapear Feed" : "Map Feed"}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-zinc-950 border-zinc-850 text-white w-56">
@@ -822,7 +828,7 @@ function CameraCell({
                 variant="ghost"
                 className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
                 onClick={() => onSplit("horizontal")}
-                title="Dividir Horizontal"
+                title={language === "pt" ? "Dividir Horizontal" : "Split Horizontally"}
               >
                 <Columns className="h-3.5 w-3.5" />
               </Button>
@@ -831,7 +837,7 @@ function CameraCell({
                 variant="ghost"
                 className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
                 onClick={() => onSplit("vertical")}
-                title="Dividir Vertical"
+                title={language === "pt" ? "Dividir Vertical" : "Split Vertically"}
               >
                 <Rows className="h-3.5 w-3.5" />
               </Button>
@@ -841,7 +847,7 @@ function CameraCell({
                   variant="ghost"
                   className="h-6 w-6 hover:bg-zinc-800 rounded text-red-400 hover:text-red-300 hover:bg-red-950/20 transition-colors"
                   onClick={onDelete}
-                  title="Remover Painel"
+                  title={language === "pt" ? "Remover Painel" : "Remove Panel"}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -874,7 +880,7 @@ function CameraCell({
             <div className="z-10 flex flex-col items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
               <span className="text-[10px] tracking-widest text-zinc-500/80 uppercase font-mono">
-                Carregar sinal...
+                {language === "pt" ? "Carregar sinal..." : "Loading feed..."}
               </span>
             </div>
           </div>
@@ -884,7 +890,7 @@ function CameraCell({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 p-4 text-center gap-2">
             <AlertCircle className="h-5 w-5 text-red-500/80" />
             <span className="text-[11px] font-semibold text-zinc-400 font-mono tracking-wider">
-              LIGAÇÃO INTERROMPIDA
+              {t("live.connectionInterrupted")}
             </span>
             <Button
               size="sm"
@@ -898,7 +904,7 @@ function CameraCell({
               }}
             >
               <RefreshCw className="h-3 w-3 mr-1" />
-              Tentar Novamente
+              {language === "pt" ? "Tentar Novamente" : "Try Again"}
             </Button>
           </div>
         )}
@@ -926,7 +932,7 @@ function CameraCell({
               variant="ghost"
               className="h-6 text-[10px] px-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors rounded"
             >
-              Mudar Feed
+              {language === "pt" ? "Mudar Feed" : "Change Feed"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-zinc-950 border border-zinc-800 text-white w-52 rounded-md">
@@ -943,7 +949,7 @@ function CameraCell({
               className="hover:bg-zinc-900 focus:bg-zinc-900 text-xs py-2 cursor-pointer text-red-400 focus:text-red-400 transition-colors"
               onClick={() => onSelectCamera(null)}
             >
-              Desconectar Canal
+              {language === "pt" ? "Desconectar Canal" : "Disconnect Feed"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -961,7 +967,7 @@ function CameraCell({
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               } disabled:opacity-50 disabled:cursor-not-allowed`}
               onClick={() => onToggleFlash(camera.id)}
-              title={camera.flash_active ? "Desligar Lanterna" : "Ligar Lanterna"}
+              title={camera.flash_active ? (language === "pt" ? "Desligar Lanterna" : "Flashlight Off") : (language === "pt" ? "Ligar Lanterna" : "Flashlight On")}
             >
               <Flashlight className="h-3.5 w-3.5" />
             </Button>
@@ -975,7 +981,7 @@ function CameraCell({
           variant="ghost"
           className="h-6 w-6 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
           onClick={() => onSplit("horizontal")}
-          title="Dividir Horizontal"
+          title={language === "pt" ? "Dividir Horizontal" : "Split Horizontally"}
         >
           <Columns className="h-3.5 w-3.5" />
         </Button>
@@ -985,7 +991,7 @@ function CameraCell({
           variant="ghost"
           className="h-6 w-6 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
           onClick={() => onSplit("vertical")}
-          title="Dividir Vertical"
+          title={language === "pt" ? "Dividir Vertical" : "Split Vertically"}
         >
           <Rows className="h-3.5 w-3.5" />
         </Button>
@@ -995,7 +1001,7 @@ function CameraCell({
           variant="ghost"
           className="h-6 w-6 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
           onClick={onToggleFullscreen}
-          title={isFullscreen ? "Restaurar" : "Maximizar"}
+          title={isFullscreen ? (language === "pt" ? "Restaurar" : "Restore") : (language === "pt" ? "Maximizar" : "Maximize")}
         >
           {isFullscreen ? (
             <Minimize2 className="h-3.5 w-3.5" />
@@ -1012,7 +1018,7 @@ function CameraCell({
               variant="ghost"
               className="h-6 w-6 text-red-400 hover:text-red-300 hover:bg-red-950/20 rounded transition-colors"
               onClick={onDelete}
-              title="Eliminar Painel"
+              title={language === "pt" ? "Eliminar Painel" : "Remove Panel"}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>

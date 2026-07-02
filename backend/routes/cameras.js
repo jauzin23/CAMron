@@ -356,7 +356,7 @@ router.post("/:id/flash", (req, res) => {
     const camera = db.prepare("SELECT * FROM cameras WHERE id = ?").get(id);
     if (!camera) return res.status(404).json({ error: "Camera not found" });
     if (!camera.ip) {
-      return res.status(400).json({ error: "A câmara ainda não registou o seu IP." });
+      return res.status(400).json({ error: "The camera has not registered its IP yet." });
     }
 
     const active = camera.flash_active === 1 ? 0 : 1;
@@ -391,7 +391,7 @@ router.post("/:id/flash", (req, res) => {
         } else {
           res
             .status(camRes.statusCode)
-            .json({ error: `A câmara respondeu com o estado: ${camRes.statusCode}` });
+            .json({ error: `The camera responded with status: ${camRes.statusCode}` });
         }
       });
     });
@@ -400,14 +400,14 @@ router.post("/:id/flash", (req, res) => {
       if (!res.headersSent) {
         res
           .status(502)
-          .json({ error: `Não foi possível ligar à câmara: ${err.message}` });
+          .json({ error: `Could not connect to the camera: ${err.message}` });
       }
     });
 
     camReq.on("timeout", () => {
       camReq.destroy();
       if (!res.headersSent) {
-        res.status(504).json({ error: "A ligação à câmara expirou." });
+        res.status(504).json({ error: "Connection to the camera timed out." });
       }
     });
 
@@ -415,7 +415,7 @@ router.post("/:id/flash", (req, res) => {
     camReq.end();
   } catch (err) {
     console.error("[cameras] POST /:id/flash:", err.message);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

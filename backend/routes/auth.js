@@ -18,16 +18,16 @@ router.post("/login", (req, res) => {
   const { pin } = req.body;
 
   if (!pin || typeof pin !== "string") {
-    return res.status(400).json({ error: "PIN em falta ou inválido" });
+    return res.status(400).json({ error: "Missing or invalid PIN" });
   }
 
   // Validate PIN length (4-6 digits, numeric only)
   if (!/^\d{4,6}$/.test(pin)) {
-    return res.status(400).json({ error: "O PIN deve ter entre 4 e 6 dígitos numéricos" });
+    return res.status(400).json({ error: "The PIN must be between 4 and 6 numeric digits" });
   }
 
   if (pin !== APP_PIN) {
-    return res.status(401).json({ error: "PIN incorreto" });
+    return res.status(401).json({ error: "Incorrect PIN" });
   }
 
   const token = jwt.sign({ role: "admin" }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
@@ -47,7 +47,7 @@ router.post("/verify", (req, res) => {
   const { token } = req.body;
 
   if (!token) {
-    return res.status(400).json({ error: "Token em falta" });
+    return res.status(400).json({ error: "Missing token" });
   }
 
   try {
@@ -55,9 +55,9 @@ router.post("/verify", (req, res) => {
     return res.json({ valid: true, expiresAt: decoded.exp * 1000 });
   } catch (err) {
     if (err.name === "TokenExpiredError") {
-      return res.status(401).json({ valid: false, error: "Sessão expirada", code: "TOKEN_EXPIRED" });
+      return res.status(401).json({ valid: false, error: "Session expired", code: "TOKEN_EXPIRED" });
     }
-    return res.status(401).json({ valid: false, error: "Token inválido", code: "TOKEN_INVALID" });
+    return res.status(401).json({ valid: false, error: "Invalid token", code: "TOKEN_INVALID" });
   }
 });
 
