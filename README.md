@@ -1,12 +1,12 @@
+<p align="center">
+  <img src="./frontend/public/logo.png" alt="CAMron logo" width="200px" />
+</p>
+
 # <p align="center">CAMron</p>
 
 <p align="center">
-  <img src="./logo.png" alt="CAMron logo" width="120px" />
-</p>
-
-<p align="center">
   <strong>Open-source, low-cost video surveillance platform.</strong><br/>
-  View / manage cameras and flash custom firmware directly from your browser. No code
+  View / manage cameras and flash custom firmware directly from your browser. No code.
 </p>
 
 <p align="center">
@@ -91,6 +91,7 @@ flowchart TD
    ```bash
    docker-compose up
    ```
+   > **Note:** The first time you run this command on a new machine, the backend container will automatically download and install the ESP32 core into a persistent volume. This initial setup takes **5-10 minutes**, but subsequent container restarts and app builds will start instantly.
 4. **Open the web dashboard:**
    Navigate to `http://localhost:3005` in Chrome or Edge.
 
@@ -108,9 +109,13 @@ For details on how to contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 You probably dont have the needed drivers for your programmer chip. Install them and restart your browser.
 
+#### Why did the first container startup take so long?
+
+To keep the Docker image small (~300MB instead of 11GB), the ESP32 core is not baked into the image. Instead, it is installed into a persistent Docker volume on the very first start. This takes 5-10 minutes depending on your internet connection. Subsequent starts and code updates are instant.
+
 #### Why does the compilation process take a long time?
 
-The first build downloads core packages and compiles dependencies. Subsequent compilations are cached and complete in less than 10 seconds.
+The first build compiles all base dependencies. Subsequent compilations are cached and complete in less than 10 seconds.
 
 #### Why does the camera fail to connect to my wifi?
 

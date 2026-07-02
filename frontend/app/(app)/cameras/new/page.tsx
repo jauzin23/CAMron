@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Zap, ArrowRight, SkipForward } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "@/components/page-header";
@@ -12,9 +11,10 @@ import { CameraWizard, type Step } from "@/components/cameras/camera-wizard";
 import { WizardStepIdentity } from "@/components/cameras/wizard-step-identity";
 import { WizardStepDone } from "@/components/cameras/wizard-step-done";
 import { createCamera, type Camera } from "@/lib/api";
-import { CameraFlasher } from "@/components/cameras/camera-flasher";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/language-context";
+import { useDevice } from "@/lib/device-context";
+import { DeviceRestrictedPage } from "@/components/device-restricted-page";
 
 function NewCameraContent() {
   const router = useRouter();
@@ -27,7 +27,6 @@ function NewCameraContent() {
   const { t, language } = useLanguage();
   const [createdCamera, setCreatedCamera] = useState<Camera | null>(null);
   const [skippedFlash, setSkippedFlash] = useState(false);
-  const [flashingStarted, setFlashingStarted] = useState(false);
 
   const steps: Step[] = [
     { label: t("wizard.identity") },
@@ -52,8 +51,19 @@ function NewCameraContent() {
   function handleAddAnother() {
     setCreatedCamera(null);
     setSkippedFlash(false);
-    setFlashingStarted(false);
     router.push("/cameras/new?step=1");
+  }
+
+  // Redirect to the dedicated flash page — camera is already in DB from step 1
+  function handleFlashNow() {
+    if (!createdCamera) return;
+    router.push(`/cameras/flash?id=${createdCamera.id}`);
+  }
+
+  // Skip flashing — go straight to done
+  function handleSkipFlash() {
+    setSkippedFlash(true);
+    goToStep(3);
   }
 
   return (
@@ -61,7 +71,11 @@ function NewCameraContent() {
       <PageHeader
         eyebrow={t("edit.eyebrow")}
         title={t("dashboard.buttonAddCamera")}
-        description={language === "pt" ? "Regista uma nova câmara ESP32 no sistema." : "Registers a new ESP32 camera in the system."}
+        description={
+          language === "pt"
+            ? "Regista uma nova câmara ESP32 no sistema."
+            : "Registers a new ESP32 camera in the system."
+        }
         actions={
           <Link
             href="/"
@@ -74,58 +88,63 @@ function NewCameraContent() {
       />
 
       <CameraWizard steps={steps} currentStep={currentStep}>
+        {/* ── Step 1: Identity ── */}
         {currentStep === 0 && <WizardStepIdentity onNext={handleIdentity} />}
 
+        {/* ── Step 2: Firmware decision prompt ── */}
         {currentStep === 1 && createdCamera && (
-          <div className="flex flex-col items-center justify-center w-full gap-4 relative">
-            <AnimatePresence initial={false}>
-              {!flashingStarted && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="text-center flex flex-col items-center gap-2 mb-2 overflow-hidden"
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="flash-decision"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="flex flex-col items-center gap-8 py-4 text-center"
+            >
+              {/* Prompt text */}
+              <div className="flex flex-col gap-2 max-w-sm">
+                <h3 className="text-2xl font-bold tracking-tight text-foreground">
+                  {language === "pt"
+                    ? "Gravar firmware agora?"
+                    : "Flash firmware now?"}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {language === "pt"
+                    ? `A câmara "${createdCamera.name}" foi criada com sucesso. Queres gravar o firmware ESP32 agora?`
+                    : `The camera "${createdCamera.name}" was created. Do you want to flash the ESP32 firmware now?`}
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <Button
+                  onClick={handleFlashNow}
+                  size="lg"
+                  className="w-full gap-2.5 font-semibold h-11 shadow-md"
                 >
-                   <h3 className="text-xl font-bold text-zinc-100">{t("flasher.connectCameraPrompt")}</h3>
-                   <p className="text-sm text-zinc-400 max-w-sm leading-relaxed">
-                      {t("flasher.connectCameraDesc")}
-                   </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <CameraFlasher
-              camera={createdCamera}
-              cameraName={createdCamera.name}
-              onStepChange={(step) => {
-                setFlashingStarted(step !== "connect");
-              }}
-              onComplete={() => {
-                setSkippedFlash(false);
-                goToStep(3);
-              }}
-              onCancel={() => {
-                setSkippedFlash(true);
-                goToStep(3);
-              }}
-            />
-            
-            <div className="mt-4 border-t border-zinc-800/50 pt-4 w-full flex justify-center max-w-lg">
-              <Button 
-                variant="ghost" 
-                className="text-zinc-500 hover:text-zinc-300 w-full sm:w-auto"
-                onClick={() => {
-                  setSkippedFlash(true);
-                  goToStep(3);
-                }}
-              >
-                {t("flasher.configureLater")}
-              </Button>
-            </div>
-          </div>
+                  <Zap className="h-4 w-4" />
+                  {language === "pt" ? "Gravar Firmware" : "Flash Firmware"}
+                  <ArrowRight className="h-4 w-4 ml-auto" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={handleSkipFlash}
+                  size="lg"
+                  className="w-full gap-2 font-medium h-11 text-muted-foreground hover:text-foreground"
+                >
+                  <SkipForward className="h-4 w-4" />
+                  {language === "pt"
+                    ? "Configurar mais tarde"
+                    : "Configure later"}
+                </Button>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         )}
 
+        {/* ── Step 3: Done ── */}
         {currentStep === 2 && createdCamera && (
           <WizardStepDone
             cameraName={createdCamera.name}
@@ -138,9 +157,6 @@ function NewCameraContent() {
   );
 }
 
-import { useDevice } from "@/lib/device-context";
-import { DeviceRestrictedPage } from "@/components/device-restricted-page";
-
 export default function NewCameraPage() {
   const { isDesktop } = useDevice();
   const { t, language } = useLanguage();
@@ -148,7 +164,11 @@ export default function NewCameraPage() {
   if (!isDesktop) {
     return (
       <DeviceRestrictedPage
-        title={language === "pt" ? "Adicionar Câmara Restrita" : "Add Camera Restricted"}
+        title={
+          language === "pt"
+            ? "Adicionar Câmara Restrita"
+            : "Add Camera Restricted"
+        }
         description={t("restricted.descNew")}
       />
     );
@@ -160,4 +180,3 @@ export default function NewCameraPage() {
     </Suspense>
   );
 }
-

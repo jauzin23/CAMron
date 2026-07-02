@@ -77,6 +77,8 @@ export const en = {
     wifiSsid: "Network Name (SSID):",
     wifiPassword: "Password:",
     advancedConfig: "Advanced Configuration",
+    importCredentials: "Import credentials from another camera (optional)",
+    selectCameraPlaceholder: "Select a camera...",
     backendIpLabel: "Server IP (optional):",
     backendPortLabel: "Server Port (optional):",
     buttonConnectUsb: "Connect via USB & Continue",
@@ -100,7 +102,7 @@ export const en = {
     compileInternalError: "An error occurred. Try again later.",
     fileDownloadError: "Failed to fetch file",
     flashWriteError:
-      "An error occurred writing to the camera. Check the cable and try again.",
+      "An error occurred during the installation. Check the cable and try again.",
     handshakeDbError: "Error checking database:",
     flashFailedStatus: "Could not complete configuration.",
     setupDone: "Configuration complete!",
@@ -128,8 +130,8 @@ export const en = {
     editCamera: "Edit",
     flashCamera: "Re-configure (Flash)",
     deleteCamera: "Delete",
-    flashActive: "Flash on",
-    flashInactive: "Flash off",
+    flashActive: "Flash",
+    flashInactive: "Flash",
     ipCopied: "IP copied!",
   },
   live: {

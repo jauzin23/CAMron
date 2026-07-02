@@ -59,7 +59,7 @@ export const pt = {
       "O seu navegador não suporta a Web Serial API. Use o Chrome ou Edge.",
     missingWifi: "Por favor, preencha o wifi e a Palavra-passe.",
     compiling: "A compilar firmware...",
-    writing: "A gravar na câmara...",
+    writing: "A instalar...",
     done: "Concluído!",
     flashSuccess:
       "Software gravado com sucesso! Aguardando primeiro arranque...",
@@ -77,10 +77,12 @@ export const pt = {
     wifiSsid: "Nome da Rede (SSID):",
     wifiPassword: "Palavra-passe:",
     advancedConfig: "Configuração Avançada",
+    importCredentials: "Importar credenciais de outra câmara (opcional)",
+    selectCameraPlaceholder: "Selecionar câmara...",
     backendIpLabel: "IP do Servidor (opcional):",
     backendPortLabel: "Porta do Servidor (opcional):",
     buttonConnectUsb: "Ligar via USB e Continuar",
-    compilingSoftware: "A preparar o software da câmara...",
+    compilingSoftware: "A preparar o software...",
     compilingWait: "Isto pode demorar até 2-3 minutos na primeira vez.",
     logsLabel: "Logs de Compilação",
     downloadingBinaries: "A descarregar binários compilados...",
@@ -96,11 +98,11 @@ export const pt = {
       "Não foi possível encontrar a câmara. Verifique se o cabo está bem inserido.",
     compileInitFailed: "Falha ao iniciar compilação.",
     compilePrepareError:
-      "Ocorreu um erro a preparar o software da câmara. Tente de novo.",
+      "Ocorreu um erro a preparar o software. Tente de novo.",
     compileInternalError: "Ocorreu um erro interno. Tente mais tarde.",
     fileDownloadError: "Falha ao obter ficheiro",
     flashWriteError:
-      "Ocorreu um erro a gravar na câmara. Verifique o cabo e tente novamente.",
+      "Ocorreu um erro ao instalar. Verifique o cabo e tente novamente.",
     handshakeDbError: "Erro ao verificar base de dados:",
     flashFailedStatus: "Não foi possível concluir a configuração.",
     setupDone: "Configuração concluída!",
@@ -126,8 +128,8 @@ export const pt = {
     editCamera: "Editar",
     flashCamera: "Re-configurar (Flash)",
     deleteCamera: "Eliminar",
-    flashActive: "Flash ligado",
-    flashInactive: "Flash desligado",
+    flashActive: "Flash",
+    flashInactive: "Flash",
     ipCopied: "IP copiado!",
   },
   live: {
@@ -161,9 +163,11 @@ export const pt = {
   flash: {
     eyebrow: "Configuração",
     title: 'Gravar Firmware em "{name}"',
-    description: "Configure a sua câmara e ligue-a à rede Wi-Fi utilizando o cabo USB.",
+    description:
+      "Configure a sua câmara e ligue-a à rede Wi-Fi utilizando o cabo USB.",
     restrictedTitle: "Gravação de Firmware Restrita",
-    restrictedDesc: "A gravação de firmware requer ligação física via USB utilizando a Web Serial API, funcionalidade apenas disponível em browsers de computadores (Desktop).",
+    restrictedDesc:
+      "A gravação de firmware requer ligação física via USB utilizando a Web Serial API, funcionalidade apenas disponível em browsers de computadores (Desktop).",
     loading: "A carregar dados...",
     loadError: "Erro ao carregar os dados. O backend está a correr?",
     backToControl: "Voltar ao Centro de Controlo",

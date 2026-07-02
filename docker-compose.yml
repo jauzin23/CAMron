@@ -25,6 +25,8 @@ services:
       - JWT_EXPIRY=${JWT_EXPIRY:-15m}
     volumes:
       - backend-data:/app/data
+      # ESP32 core lives here — downloaded once on first start, reused forever
+      - arduino-core-data:/home/node/.arduino15
     restart: unless-stopped
 
   frontend:
@@ -37,3 +39,5 @@ services:
 
 volumes:
   backend-data:
+  arduino-core-data:
+

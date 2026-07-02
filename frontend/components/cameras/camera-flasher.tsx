@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { type Camera, authFetch } from "@/lib/api";
 import { useLanguage } from "@/lib/language-context";
+import type { MascotState } from "@/components/cameras/flash-layout";
 
 interface CameraFlasherProps {
   camera?: Camera;
@@ -42,6 +43,8 @@ interface CameraFlasherProps {
   onComplete?: () => void;
   onCancel?: () => void;
   onStepChange?: (step: FlashingStep) => void;
+  /** Called whenever the mascot state should change (asleep → working) */
+  onMascotStateChange?: (state: MascotState) => void;
 }
 
 type FlashingStep =
@@ -77,6 +80,7 @@ export function CameraFlasher({
   onComplete,
   onCancel,
   onStepChange,
+  onMascotStateChange,
 }: CameraFlasherProps) {
   const { t } = useLanguage();
   const [isMounted, setIsMounted] = useState<boolean>(false);
@@ -86,9 +90,16 @@ export function CameraFlasher({
   }, []);
 
   const [step, setStepState] = useState<FlashingStep>("connect");
+
+  /** Derive mascot state: asleep while idle (connect/wifi), working once processing starts */
+  function getMascotState(s: FlashingStep): MascotState {
+    return s === "connect" || s === "wifi" ? "asleep" : "working";
+  }
+
   const setStep = (newStep: FlashingStep) => {
     setStepState(newStep);
     onStepChange?.(newStep);
+    onMascotStateChange?.(getMascotState(newStep));
   };
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -111,6 +122,7 @@ export function CameraFlasher({
   const [detectedCameraName, setDetectedCameraName] = useState<string>("");
 
   const [allCameras, setAllCameras] = useState<Camera[]>([]);
+  const [camerasLoading, setCamerasLoading] = useState<boolean>(true);
   const [flashProgress, setFlashProgress] = useState<number>(0);
   const [currentFlashingFile, setCurrentFlashingFile] =
     useState<string>("firmware.bin");
@@ -177,6 +189,7 @@ export function CameraFlasher({
       void fetchNetworkInfo();
 
       const fetchCameras = async () => {
+        setCamerasLoading(true);
         try {
           const res = await authFetch(`${BACKEND_URL}/api/cameras`);
           if (res.ok) {
@@ -186,7 +199,10 @@ export function CameraFlasher({
               setAllCameras(configured);
             }
           }
-        } catch (err) {}
+        } catch (err) {
+        } finally {
+          setCamerasLoading(false);
+        }
       };
       void fetchCameras();
     }
@@ -613,7 +629,7 @@ export function CameraFlasher({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col items-center justify-center text-center gap-8 py-6 px-4 overflow-hidden">
+    <div className="flex w-full flex-col items-center justify-center text-center gap-8 py-4 overflow-hidden">
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
@@ -625,15 +641,13 @@ export function CameraFlasher({
         >
           {step === "connect" && (
             <div className="flex flex-col items-center gap-6 w-full animate-fade-in">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                <Usb className="h-10 w-10 text-primary" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-bold text-foreground">
-                  1. {t("flasher.connectUsb")}
+              {/* Step sub-header */}
+              <div className="flex flex-col items-center gap-1 w-full">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 1</span>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
+                  {t("flasher.connectUsb")}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mt-1">
                   {t("flasher.connectCameraDesc")} ({cameraName})
                 </p>
               </div>
@@ -658,8 +672,7 @@ export function CameraFlasher({
                     <Button
                       onClick={handleConnectPort}
                       disabled={countdown > 0}
-                      size="lg"
-                      className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md mt-2"
+                      className="w-full mt-2 gap-2 font-semibold"
                     >
                       {countdown > 0
                         ? `${t("flasher.connectUsb")} (${countdown}s)`
@@ -689,24 +702,22 @@ export function CameraFlasher({
               onSubmit={handleStartCompilation}
               className="flex flex-col items-center gap-6 w-full animate-fade-in"
             >
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                <Wifi className="h-10 w-10 text-primary" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-bold text-foreground">
+              {/* Step sub-header */}
+              <div className="flex flex-col items-center gap-1 w-full">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 2</span>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.enterWifiDetails")}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mt-1">
                   {t("flasher.wifiDesc")}
                 </p>
               </div>
 
               <div className="flex flex-col gap-3 w-full max-w-xs text-left">
-                {allCameras.filter((c) => c.id !== cameraId).length > 0 && (
+                {!camerasLoading && allCameras.filter((c) => c.id !== cameraId).length > 0 && (
                   <div className="flex flex-col gap-1.5 mb-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground pl-0.5">
-                      {t("flasher.advancedConfig")}
+                      {t("flasher.importCredentials")}
                     </Label>
                     <Select
                       onValueChange={(val) => {
@@ -717,8 +728,8 @@ export function CameraFlasher({
                         }
                       }}
                     >
-                      <SelectTrigger className="h-10 text-sm bg-background border-input text-foreground focus:ring-primary">
-                        <SelectValue placeholder={t("common.loading")} />
+                      <SelectTrigger className="h-10 w-full">
+                        <SelectValue placeholder={t("flasher.selectCameraPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border-border text-foreground">
                         {allCameras
@@ -746,7 +757,7 @@ export function CameraFlasher({
                     value={wifiSsid}
                     onChange={(e) => setWifiSsid(e.target.value)}
                     maxLength={32}
-                    className="h-10 text-sm bg-background border-input text-foreground focus-visible:ring-primary"
+                    className="h-10"
                     required
                   />
                 </div>
@@ -767,7 +778,7 @@ export function CameraFlasher({
                       onChange={(e) => setWifiPassword(e.target.value)}
                       minLength={8}
                       maxLength={64}
-                      className="pr-10 h-10 text-sm bg-background border-input text-foreground focus-visible:ring-primary"
+                      className="h-10 pr-10"
                       required
                     />
                     <button
@@ -801,7 +812,7 @@ export function CameraFlasher({
                             value={backendIp}
                             onChange={(e) => setBackendIp(e.target.value)}
                             pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
-                            className="flex-1 h-10 text-sm bg-background border-input text-foreground font-mono"
+                            className="flex-1 h-10 font-mono"
                             required
                           />
                           <Input
@@ -810,7 +821,7 @@ export function CameraFlasher({
                             value={backendPort}
                             onChange={(e) => setBackendPort(e.target.value)}
                             pattern="^[0-9]{1,5}$"
-                            className="w-20 h-10 text-sm bg-background border-input text-foreground font-mono text-center"
+                            className="w-20 h-10 font-mono text-center"
                             required
                           />
                         </div>
@@ -822,9 +833,8 @@ export function CameraFlasher({
                 <div className="flex flex-col gap-3 w-full mt-3">
                   <Button
                     type="submit"
-                    size="lg"
                     disabled={loading}
-                    className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md"
+                    className="w-full gap-2 font-semibold"
                   >
                     {t("flasher.buttonConnectUsb")}
                   </Button>
@@ -841,16 +851,14 @@ export function CameraFlasher({
           )}
 
           {step === "compiling" && (
-            <div className="flex flex-col items-center gap-6 w-full py-8 animate-fade-in">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                <RefreshCw className="h-10 w-10 text-primary animate-spin" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-bold text-foreground">
+            <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
+              {/* Step sub-header */}
+              <div className="flex flex-col items-center gap-1 w-full">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 3</span>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.compilingSoftware")}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto mt-1">
                   {t("flasher.compilingWait")}
                 </p>
               </div>
@@ -859,15 +867,13 @@ export function CameraFlasher({
 
           {step === "flashing" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                <Cpu className="h-10 w-10 text-primary" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-bold text-foreground">
-                  {t("flasher.writing")}
+              {/* Step sub-header */}
+              <div className="flex flex-col items-center gap-1 w-full">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 4</span>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
+                  {t("flasher.stepFlash")}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto mt-1">
                   {t("flasher.writing")}
                 </p>
               </div>
@@ -891,17 +897,13 @@ export function CameraFlasher({
 
           {step === "verifying" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
-              <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                  <RefreshCw className="h-10 w-10 text-primary animate-spin" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-bold text-foreground">
-                  {t("flasher.waitingHandshake")}
+              {/* Step sub-header */}
+              <div className="flex flex-col items-center gap-1 w-full">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 5</span>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
+                  {t("flasher.stepVerify")}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto mt-1">
                   {t("flasher.waitingHandshake")}
                 </p>
               </div>
@@ -936,15 +938,13 @@ export function CameraFlasher({
 
           {step === "failed" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-rose-500/10 border border-rose-500/20">
-                <AlertCircle className="h-10 w-10 text-rose-500" />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-bold text-foreground">
+              <AlertCircle className="h-14 w-14 text-rose-500" />
+              {/* Step sub-header */}
+              <div className="flex flex-col items-center gap-1 w-full">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("common.error")}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto mt-1">
                   {errorMsg || t("flasher.flashFailedStatus")}
                 </p>
               </div>
@@ -952,8 +952,8 @@ export function CameraFlasher({
               <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
                 <Button
                   onClick={handleResetWizard}
-                  size="lg"
-                  className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md bg-rose-600 hover:bg-rose-500 text-zinc-50 border-transparent"
+                  variant="destructive"
+                  className="w-full gap-2 font-semibold"
                 >
                   {t("common.continue")}
                 </Button>
@@ -972,17 +972,13 @@ export function CameraFlasher({
 
           {step === "success" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
-              <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                  <CheckCircle className="h-10 w-10 text-emerald-500" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-bold text-foreground">
+              <CheckCircle className="h-14 w-14 text-emerald-500" />
+              {/* Step sub-header */}
+              <div className="flex flex-col items-center gap-1 w-full">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.setupDone")}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mt-1">
                   {t("flasher.handshakedSuccessfully")}
                 </p>
               </div>
@@ -990,8 +986,7 @@ export function CameraFlasher({
               <div className="w-full max-w-xs mt-2">
                 <Button
                   onClick={onComplete}
-                  size="lg"
-                  className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md bg-emerald-600 hover:bg-emerald-500 text-zinc-50 border-transparent"
+                  className="w-full gap-2 font-semibold"
                 >
                   {t("common.continue")}
                 </Button>

@@ -1,38 +1,67 @@
-FROM node:20-bookworm-slim
+# =============================================================================
+# Stage 1: builder
+# Compiles native Node modules (better-sqlite3) using build-essential.
+# Debian bookworm-slim is used to ensure glibc compatibility with the runner.
+# =============================================================================
+FROM node:20-bookworm-slim AS builder
 
-# Install system dependencies needed for ESP32 compilation & native node modules
-RUN apt-get update && apt-get install -y \
+# Install build tools needed only for compiling native modules
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy manifests first — layer is cached unless deps change
+COPY --chown=node:node package*.json ./
+
+# Install ALL deps (including dev) so native modules compile correctly,
+# then prune to production-only before copying to final stage
+RUN npm ci
+RUN npm prune --omit=dev
+
+# Copy source
+COPY --chown=node:node . .
+
+# =============================================================================
+# Stage 2: runner (final image)
+# Lean Debian image. No compilers or heavy build tools.
+# Contains python3, python3-serial, and bash (glibc compatible) for ESP32 compilation.
+# arduino-cli binary only — core is installed at runtime into a named volume.
+# =============================================================================
+FROM node:20-bookworm-slim AS runner
+
+# Install runtime dependencies needed for ESP32 compilers & tools (including bash, python, serial)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     python3 \
     python3-serial \
     python-is-python3 \
-    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install arduino-cli
+# Install arduino-cli binary only (~10 MB) — no core, no toolchains
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
 
-# Set up application directory and database mount point
 WORKDIR /app
 RUN mkdir -p /app/data && chown -R node:node /app
 
-# Run as non-root user 'node'
-USER node
+# Copy only the production node_modules (already pruned in builder stage)
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 
-# Initialize arduino-cli configurations & pre-install the ESP32 core
-RUN arduino-cli config init && \
-    arduino-cli config set board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json && \
-    arduino-cli core update-index && \
-    arduino-cli core install esp32:esp32
-
-# Install dependencies first for caching
-COPY --chown=node:node package*.json ./
-RUN npm ci
-
-# Copy the rest of the application files
+# Copy application source
 COPY --chown=node:node . .
+
+# Copy and set up the entrypoint script
+COPY --chown=root:root entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+USER node
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+# Entrypoint handles one-time ESP32 core install into the mounted volume,
+# then execs the CMD below
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["node", "server.js"]
