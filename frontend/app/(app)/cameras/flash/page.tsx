@@ -60,7 +60,7 @@ function FlashCameraContent() {
         <AlertCircle className="h-6 w-6" />
         <span className="text-sm">Erro ao carregar os dados. O backend está a correr?</span>
         <Button variant="outline" onClick={() => router.push("/")} className="mt-2 text-xs">
-          Voltar ao Dashboard
+          Voltar ao Centro de Controlo
         </Button>
       </div>
     );
@@ -78,7 +78,7 @@ function FlashCameraContent() {
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-none outline-none"
           >
             <ChevronLeft className="h-4 w-4" />
-            Voltar ao Dashboard
+            Voltar ao Centro de Controlo
           </button>
         }
       />

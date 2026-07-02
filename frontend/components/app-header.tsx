@@ -21,7 +21,7 @@ import {
 
 const NAV = [
   { href: "/", label: "Centro de Controlo", icon: LayoutDashboard },
-  { href: "/live", label: "Live", icon: Video },
+  { href: "/live", label: "Ao Vivo", icon: Video },
 ];
 
 export function LogoSvg({
