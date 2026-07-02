@@ -119,7 +119,7 @@ router.post("/compile/initiate", (req, res) => {
   const { wifi_ssid, wifi_password, custom_host, custom_port, cameraId, name } = req.body;
 
   if (!wifi_ssid || !wifi_password) {
-    return res.status(400).json({ error: "WiFi SSID e Palavra-passe são obrigatórios." });
+    return res.status(400).json({ error: "WiFi SSID and Password are required." });
   }
 
   let finalCameraId = cameraId;
@@ -131,7 +131,7 @@ router.post("/compile/initiate", (req, res) => {
       // Existing camera: fetch, update WiFi settings, and reset api_key
       const camera = db.prepare("SELECT * FROM cameras WHERE id = ?").get(finalCameraId);
       if (!camera) {
-        return res.status(404).json({ error: "Câmara não encontrada na base de dados." });
+        return res.status(404).json({ error: "Camera not found in the database." });
       }
       // Generate a new unique authentication token for this flash session
       finalApiKey = crypto.randomBytes(32).toString("hex");
@@ -140,7 +140,7 @@ router.post("/compile/initiate", (req, res) => {
       db.prepare(
         "UPDATE cameras SET wifi_ssid = ?, wifi_pass = ?, api_key = ?, updated_at = datetime('now') WHERE id = ?"
       ).run(wifi_ssid, wifi_password, finalApiKey, finalCameraId);
-      console.log(`[compiler] Re-flash iniciado para câmara existente: ${finalName} (${finalCameraId}) com novo api_key`);
+      console.log(`[compiler] Re-flash initiated for existing camera: ${finalName} (${finalCameraId}) with new api_key`);
     } else {
       // New camera: generate credentials and insert to DB
       finalCameraId = crypto.randomUUID();
@@ -150,7 +150,7 @@ router.post("/compile/initiate", (req, res) => {
         `INSERT INTO cameras (id, api_key, name, wifi_ssid, wifi_pass, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
       ).run(finalCameraId, finalApiKey, finalName, wifi_ssid, wifi_password);
-      console.log(`[compiler] Criado registo na DB para nova câmara: ${finalName} (${finalCameraId})`);
+      console.log(`[compiler] Created DB record for new camera: ${finalName} (${finalCameraId})`);
     }
 
     const host = custom_host || DETECTED_IP;
@@ -169,8 +169,8 @@ router.post("/compile/initiate", (req, res) => {
 
     res.json({ cameraId: finalCameraId });
   } catch (dbErr) {
-    console.error("[compiler] Erro de base de dados no initiate:", dbErr.message);
-    res.status(500).json({ error: "Falha ao gravar câmara na base de dados." });
+    console.error("[compiler] Database error on initiate:", dbErr.message);
+    res.status(500).json({ error: "Failed to save camera to the database." });
   }
 });
 
@@ -196,7 +196,7 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   const compilation = compilations[cameraId];
 
   if (!compilation) {
-    return res.status(404).json({ error: "Tarefa de compilação não encontrada." });
+    return res.status(404).json({ error: "Compilation task not found." });
   }
 
   // Set headers for Server-Sent Events (SSE)
@@ -236,10 +236,10 @@ router.get("/compile/stream/:cameraId", (req, res) => {
     };
     
     copyRecursive(templateDir, targetDir);
-    res.write(`data: [SYSTEM] Ficheiros do template copiados com sucesso.\n\n`);
+    res.write(`data: [SYSTEM] Template files copied successfully.\n\n`);
   } catch (err) {
-    console.error("[compiler] Erro ao copiar template:", err);
-    res.write(`data: [ERROR] Falha ao configurar ambiente temporário: ${err.message}\n\n`);
+    console.error("[compiler] Error copying template:", err);
+    res.write(`data: [ERROR] Failed to set up temporary environment: ${err.message}\n\n`);
     compilation.status = "failed";
     clearInterval(heartbeat);
     res.end();
@@ -260,10 +260,10 @@ router.get("/compile/stream/:cameraId", (req, res) => {
       .replace("TEMPLATE_CAMERA_ID", cameraId);
 
     fs.writeFileSync(configPath, configContent, "utf8");
-    res.write(`data: [SYSTEM] Configurações de Wi-Fi e rede gravadas no ficheiro config.h.\n\n`);
+    res.write(`data: [SYSTEM] WiFi and network configurations saved to config.h file.\n\n`);
   } catch (err) {
-    console.error("[compiler] Erro ao escrever config.h:", err);
-    res.write(`data: [ERROR] Falha ao configurar ficheiro config.h: ${err.message}\n\n`);
+    console.error("[compiler] Error writing config.h:", err);
+    res.write(`data: [ERROR] Failed to configure config.h file: ${err.message}\n\n`);
     compilation.status = "failed";
     clearInterval(heartbeat);
     res.end();
@@ -272,7 +272,7 @@ router.get("/compile/stream/:cameraId", (req, res) => {
 
   // 3. Spawn Arduino CLI process
   res.write(`data: compiling\n\n`);
-  console.log(`[compiler] A iniciar arduino-cli compile em: ${targetDir}`);
+  console.log(`[compiler] Starting arduino-cli compile in: ${targetDir}`);
 
   const sketchDir = path.join(targetDir, "camron_template");
   const arduinoProcess = spawn(ARDUINO_CLI_PATH, [
@@ -312,7 +312,7 @@ router.get("/compile/stream/:cameraId", (req, res) => {
             fs.copyFileSync(src, dest);
             console.log(`[compiler] Copiado ${mapping.srcName} para ${dest}`);
           } else {
-            console.error(`[compiler] Ficheiro compilado em falta: ${src}`);
+            console.error(`[compiler] Missing compiled file: ${src}`);
           }
         }
 
@@ -321,7 +321,7 @@ router.get("/compile/stream/:cameraId", (req, res) => {
         const bootAppDest = path.join(targetDir, "boot_app0.bin");
         if (fs.existsSync(bootAppSrc)) {
           fs.copyFileSync(bootAppSrc, bootAppDest);
-          console.log(`[compiler] Copiado boot_app0.bin para ${bootAppDest}`);
+          console.log(`[compiler] Copied boot_app0.bin to ${bootAppDest}`);
         }
       } catch (copyErr) {
         console.error("[compiler] Erro ao preparar binários compilados:", copyErr);
@@ -331,8 +331,8 @@ router.get("/compile/stream/:cameraId", (req, res) => {
       res.write(`event: complete\ndata: ${JSON.stringify({ cameraId, apiKey: compilation.apiKey })}\n\n`);
     } else {
       compilation.status = "failed";
-      console.error(`[compiler] Compilação falhou com código de saída ${code}. Logs:\n${compilation.logs}`);
-      res.write(`event: error\ndata: A compilação falhou.\n\n`);
+      console.error(`[compiler] Compilation failed with exit code ${code}. Logs:\n${compilation.logs}`);
+      res.write(`event: error\ndata: Compilation failed.\n\n`);
     }
     res.end();
   });
@@ -374,7 +374,7 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   }
 
   if (!hasRecord) {
-    return res.status(404).json({ error: "Tarefa de gravação não encontrada." });
+    return res.status(404).json({ error: "Flashing task not found." });
   }
 
   const targetDir = path.join(tempDirRoot, `temp_${cameraId}`);
@@ -383,7 +383,7 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   if (fs.existsSync(filePath)) {
     res.download(filePath, filename);
   } else {
-    res.status(404).json({ error: `Ficheiro ${filename} não encontrado. Certifique-se que a compilação correu com sucesso.` });
+    res.status(404).json({ error: `File ${filename} not found. Please verify the compilation succeeded.` });
   }
 });
 
@@ -420,7 +420,7 @@ router.post("/confirm-flash", (req, res) => {
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!id) {
-    return res.status(400).json({ error: "Câmara sem ID" });
+    return res.status(400).json({ error: "Camera ID is missing" });
   }
 
   let finalApiKey = null;
@@ -435,11 +435,11 @@ router.post("/confirm-flash", (req, res) => {
   }
 
   if (!finalApiKey) {
-    return res.status(404).json({ error: "Câmara não registada ou em falta." });
+    return res.status(404).json({ error: "Camera not registered or missing." });
   }
 
   if (!token || token !== finalApiKey) {
-    return res.status(401).json({ error: "Token de autorização inválido" });
+    return res.status(401).json({ error: "Invalid authorization token" });
   }
 
   confirmations[id] = {
@@ -453,11 +453,11 @@ router.post("/confirm-flash", (req, res) => {
     // Also update camera seen details
     db.prepare("UPDATE cameras SET last_seen = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(id);
 
-    console.log(`[handshake] Câmara ${id} confirmou primeiro arranque com sucesso.`);
+    console.log(`[handshake] Camera ${id} successfully confirmed first boot.`);
     res.json({ ok: true });
   } catch (err) {
-    console.error("[handshake] Erro ao registar confirmação na DB:", err.message);
-    res.status(500).json({ error: "Erro interno ao processar confirmação" });
+    console.error("[handshake] Error registering confirmation in DB:", err.message);
+    res.status(500).json({ error: "Internal error processing confirmation" });
   }
 });
 
@@ -533,7 +533,7 @@ router.post("/cleanup/:cameraId", (req, res) => {
   try {
     if (fs.existsSync(targetDir)) {
       fs.rmSync(targetDir, { recursive: true, force: true });
-      console.log(`[compiler] Limpeza efetuada da pasta temporária da câmara: ${cameraId}`);
+      console.log(`[compiler] Cleanup performed on camera temporary folder: ${cameraId}`);
     }
     res.json({ success: true });
   } catch (err) {

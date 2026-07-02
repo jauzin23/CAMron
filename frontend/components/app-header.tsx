@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, LayoutDashboard, Video } from "lucide-react";
+import { Menu, LayoutDashboard, Video, Globe } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -18,11 +18,14 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-
-const NAV = [
-  { href: "/", label: "Centro de Controlo", icon: LayoutDashboard },
-  { href: "/live", label: "Ao Vivo", icon: Video },
-];
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useLanguage, type Language } from "@/lib/language-context";
 
 export function LogoSvg({
   className,
@@ -39,9 +42,40 @@ export function LogoSvg({
   );
 }
 
+function LanguageSelector() {
+  const { language, setLanguage } = useLanguage();
+
+  return (
+    <div className="no-drag">
+      <Select
+        value={language}
+        onValueChange={(val) => setLanguage(val as Language)}
+      >
+        <SelectTrigger
+          size="sm"
+          className="w-[105px] h-8 text-xs gap-1.5 bg-secondary/20 border-border/50"
+        >
+          <Globe className="h-3.5 w-3.5 opacity-70 text-muted-foreground" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-200">
+          <SelectItem value="pt">Português</SelectItem>
+          <SelectItem value="en">English</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export function AppHeader() {
   const pathname = usePathname();
   const [timeString, setTimeString] = useState<string>("");
+  const { t } = useLanguage();
+
+  const NAV = [
+    { href: "/", label: t("header.controlCenter"), icon: LayoutDashboard },
+    { href: "/live", label: t("header.live"), icon: Video },
+  ];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -102,8 +136,9 @@ export function AppHeader() {
           </nav>
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="sm:hidden no-drag">
+        {/* Mobile Navigation & Language Selector */}
+        <div className="flex items-center gap-2 sm:hidden no-drag">
+          <LanguageSelector />
           <Sheet>
             <SheetTrigger asChild>
               <Button
@@ -112,7 +147,7 @@ export function AppHeader() {
                 className="text-zinc-300 hover:bg-zinc-850"
               >
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Menu de navegação</span>
+                <span className="sr-only">{t("header.loading")}</span>
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -125,7 +160,7 @@ export function AppHeader() {
                   <span>CAMron</span>
                 </SheetTitle>
                 <SheetDescription className="text-zinc-500 text-xs leading-none">
-                  Navegação do sistema
+                  {t("header.menuDescription")}
                 </SheetDescription>
               </SheetHeader>
               <Separator className="bg-zinc-800/80" />
@@ -158,8 +193,9 @@ export function AppHeader() {
           </Sheet>
         </div>
 
-        {/* Desktop time display */}
+        {/* Desktop time display & Language Selector */}
         <div className="hidden sm:flex items-center gap-4">
+          <LanguageSelector />
           {timeString ? (
             <div className="font-mono text-xs text-muted-foreground bg-secondary/40 border border-border/50 px-2.5 py-1 rounded select-none">
               {timeString}
@@ -172,4 +208,3 @@ export function AppHeader() {
     </header>
   );
 }
-

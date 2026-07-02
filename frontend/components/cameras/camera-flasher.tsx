@@ -34,6 +34,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { type Camera, authFetch } from "@/lib/api";
+import { useLanguage } from "@/lib/language-context";
 
 interface CameraFlasherProps {
   camera?: Camera;
@@ -77,6 +78,7 @@ export function CameraFlasher({
   onCancel,
   onStepChange,
 }: CameraFlasherProps) {
+  const { t } = useLanguage();
   const [isMounted, setIsMounted] = useState<boolean>(false);
   useEffect(() => {
     setIsMounted(true);
@@ -229,7 +231,7 @@ export function CameraFlasher({
       // Open browser native port picker
       const activePort = await (navigator as any).serial.requestPort();
       if (!activePort) {
-        throw new Error("Nenhuma ligação USB selecionada.");
+        throw new Error(t("flasher.noUsbSelected"));
       }
 
       setPort(activePort);
@@ -285,7 +287,7 @@ export function CameraFlasher({
         await activePort.close();
       } catch (handshakeErr) {
         console.warn(
-          "Erro no handshake série, prosseguindo normalmente:",
+          "Serial handshake error, proceeding normally:",
           handshakeErr,
         );
         try {
@@ -301,7 +303,7 @@ export function CameraFlasher({
 
       // 2. Process results
       if (detectedId) {
-        console.log("Handshake bem-sucedido! ID Detetado:", detectedId);
+        console.log("Handshake successful! Detected ID:", detectedId);
         try {
           const res = await authFetch(`${BACKEND_URL}/api/cameras/${detectedId}`);
           if (res.ok) {
@@ -313,12 +315,12 @@ export function CameraFlasher({
               setIsReflash(true);
               setDetectedCameraName(existingCamera.name);
               toast.success(
-                `Câmara "${existingCamera.name}" detetada por USB!`,
+                t("flasher.connectSuccess")
               );
             }
           }
         } catch (fetchErr) {
-          console.error("Erro a obter dados da câmara detetada:", fetchErr);
+          console.error("Error fetching data for detected camera:", fetchErr);
         }
         setStep("wifi");
       } else {
@@ -369,16 +371,16 @@ export function CameraFlasher({
 
       if (err.message && err.message.includes("Failed to open serial port")) {
         setErrorMsg(
-          "A ligação USB parece estar em uso por outro programa. Feche outros programas e tente novamente.",
+          t("flasher.portInUse")
         );
       } else if (
         err.name === "NotFoundError" ||
         err.message.includes("User cancelled")
       ) {
-        setErrorMsg("Ligação USB cancelada pelo utilizador.");
+        setErrorMsg(t("flasher.usbCancelled"));
       } else {
         setErrorMsg(
-          "Não foi possível encontrar a câmara. Verifique se o cabo está bem inserido.",
+          t("flasher.cameraNotFound")
         );
       }
       setStep("failed");
@@ -391,7 +393,7 @@ export function CameraFlasher({
   const handleStartCompilation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!wifiSsid || !wifiPassword) {
-      toast.error("Por favor, preencha o Wi-Fi e a Palavra-passe.");
+      toast.error(t("flasher.missingWifi"));
       return;
     }
 
@@ -415,7 +417,7 @@ export function CameraFlasher({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Falha ao iniciar compilação.");
+        throw new Error(errorData.error || t("flasher.compileInitFailed"));
       }
 
       const { cameraId: generatedId } = await response.json();
@@ -437,7 +439,7 @@ export function CameraFlasher({
       eventSource.addEventListener("error", () => {
         eventSource.close();
         setErrorMsg(
-          "Ocorreu um erro a preparar o software da câmara. Tente de novo.",
+          t("flasher.compilePrepareError")
         );
         setStep("failed");
         void authFetch(`${BACKEND_URL}/api/cleanup/${generatedId}`, {
@@ -446,7 +448,7 @@ export function CameraFlasher({
       });
     } catch (err: any) {
       setStep("failed");
-      setErrorMsg("Ocorreu um erro interno. Tente mais tarde.");
+      setErrorMsg(t("flasher.compileInternalError"));
     } finally {
       setLoading(false);
     }
@@ -456,7 +458,7 @@ export function CameraFlasher({
   const handleFlashDevice = async (targetCameraId: string) => {
     setStep("flashing");
     setFlashProgress(0);
-    setCurrentFlashingFile("A descarregar ficheiros...");
+    setCurrentFlashingFile(t("flasher.downloadingBinaries"));
     setErrorMsg("");
 
     try {
@@ -475,7 +477,7 @@ export function CameraFlasher({
           const downloadUrl = `${BACKEND_URL}/api/download/${targetCameraId}/${fileInfo.name}`;
           const res = await authFetch(downloadUrl);
           if (!res.ok) {
-            throw new Error(`Falha ao obter ficheiro ${fileInfo.name}.`);
+            throw new Error(`${t("flasher.fileDownloadError")} ${fileInfo.name}.`);
           }
           const buf = await res.arrayBuffer();
           return {
@@ -492,7 +494,7 @@ export function CameraFlasher({
         });
       } catch (cleanupErr) {}
 
-      setCurrentFlashingFile("A ligar à câmara...");
+      setCurrentFlashingFile(t("flasher.writing"));
 
       let activePort = port;
       if (!activePort) {
@@ -543,7 +545,7 @@ export function CameraFlasher({
           const percent = Math.round((written / total) * 100);
           setFlashProgress(percent);
           setCurrentFlashingFile(
-            `A enviar software para a câmara: ${percent}%`,
+            `${t("flasher.writingFile")}: ${percent}%`
           );
         },
       });
@@ -561,7 +563,7 @@ export function CameraFlasher({
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       } catch (resetErr) {
-        console.warn("Falha ao reiniciar câmara via hardware:", resetErr);
+        console.warn("Failed to reboot camera via hardware:", resetErr);
       }
 
       try {
@@ -580,7 +582,7 @@ export function CameraFlasher({
         } catch (discErr) {}
       }
       setErrorMsg(
-        "Ocorreu um erro a gravar na câmara. Verifique o cabo e tente novamente.",
+        t("flasher.flashWriteError")
       );
       setStep("failed");
     }
@@ -619,7 +621,7 @@ export function CameraFlasher({
       try {
         let activePort = port;
         if (!activePort) {
-          console.warn("Nenhuma porta série disponível para ler logs.");
+          console.warn("No serial port available to read logs.");
           return;
         }
 
@@ -648,7 +650,7 @@ export function CameraFlasher({
         const reader = activePort.readable.getReader();
         verificationReaderRef.current = reader;
 
-        setSerialLogs("--- A iniciar consola de diagnóstico série ---\n");
+        setSerialLogs("--- Starting serial diagnostic console ---\n");
 
         while (true) {
           const { value, done } = await reader.read();
@@ -659,11 +661,11 @@ export function CameraFlasher({
           }
         }
       } catch (err: any) {
-        console.warn("Erro no leitor série de logs:", err);
+        console.warn("Error in serial log reader:", err);
         setSerialLogs(
           (prev) =>
             prev +
-            `\n[Consola desativada ou câmara desligada: ${err.message}]\n`,
+            `\n[Console disabled or camera disconnected: ${err.message}]\n`,
         );
       } finally {
         verificationPortOpenRef.current = false;
@@ -682,7 +684,7 @@ export function CameraFlasher({
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
             void stopSerialLogs();
             setStep("success");
-            toast.success("Câmara configurada e ligada com sucesso!");
+            toast.success(t("flasher.cameraOnline"));
           }
         }
       } catch (err) {}
@@ -736,10 +738,10 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  1. Ligar o cabo USB
+                  1. {t("flasher.connectUsb")}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                  Ligue a sua câmara "{cameraName}" ao computador utilizando o cabo USB.
+                  {t("flasher.connectCameraDesc")} ({cameraName})
                 </p>
               </div>
 
@@ -747,8 +749,7 @@ export function CameraFlasher({
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-left max-w-sm w-full">
                   <ShieldAlert className="h-5 w-5 shrink-0" />
                   <p className="text-xs font-medium">
-                    O seu navegador não suporta ligação série. Por favor,
-                    utilize o Google Chrome ou Microsoft Edge.
+                    {t("flasher.browserNotSupported")}
                   </p>
                 </div>
               ) : (
@@ -757,7 +758,7 @@ export function CameraFlasher({
                     <div className="flex flex-col items-center gap-2 mt-4 text-center">
                       <Spinner className="h-8 w-8 text-primary animate-spin" />
                       <span className="text-xs text-muted-foreground">
-                        A procurar a câmara...
+                        {t("common.loading")}
                       </span>
                     </div>
                   ) : (
@@ -768,8 +769,8 @@ export function CameraFlasher({
                       className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md mt-2"
                     >
                       {countdown > 0
-                        ? `Já liguei a câmara (${countdown}s)`
-                        : "Já liguei a câmara"}
+                        ? `${t("flasher.connectUsb")} (${countdown}s)`
+                        : t("flasher.connectUsb")}
                       {countdown === 0 && (
                         <ArrowRight className="h-4 w-4 ml-1.5" />
                       )}
@@ -784,7 +785,7 @@ export function CameraFlasher({
                   onClick={onCancel}
                   className="text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
                 >
-                  Voltar
+                  {t("common.back")}
                 </button>
               )}
             </div>
@@ -802,14 +803,10 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  {camera?.wifi_ssid
-                    ? `Reconfigurar câmara "${cameraName}"`
-                    : `Configurar câmara "${cameraName}"`}
+                  {t("flasher.enterWifiDetails")}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                  {camera?.wifi_ssid
-                    ? "Atualize as definições de rede da sua câmara."
-                    : "Introduza os dados da sua rede Wi-Fi para que a câmara se possa ligar."}
+                  {t("flasher.wifiDesc")}
                 </p>
               </div>
 
@@ -819,7 +816,7 @@ export function CameraFlasher({
                 {allCameras.filter((c) => c.id !== cameraId).length > 0 && (
                   <div className="flex flex-col gap-1.5 mb-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground pl-0.5">
-                      Importar definições de outra câmara
+                      {t("flasher.advancedConfig")}
                     </Label>
                     <Select
                       onValueChange={(val) => {
@@ -831,7 +828,7 @@ export function CameraFlasher({
                       }}
                     >
                       <SelectTrigger className="h-10 text-sm bg-background border-input text-foreground focus:ring-primary">
-                        <SelectValue placeholder="Selecione uma câmara..." />
+                        <SelectValue placeholder={t("common.loading")} />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border-border text-foreground">
                         {allCameras
@@ -851,7 +848,7 @@ export function CameraFlasher({
                     htmlFor="wifi-ssid"
                     className="text-xs font-semibold text-muted-foreground pl-0.5"
                   >
-                    Nome do Wi-Fi (SSID)
+                    {t("flasher.wifiSsid")}
                   </Label>
                   <Input
                     id="wifi-ssid"
@@ -869,7 +866,7 @@ export function CameraFlasher({
                     htmlFor="wifi-password"
                     className="text-xs font-semibold text-muted-foreground pl-0.5"
                   >
-                    Palavra-passe
+                    {t("flasher.wifiPassword")}
                   </Label>
                   <div className="relative">
                     <Input
@@ -900,17 +897,17 @@ export function CameraFlasher({
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="advanced" className="border-border">
                     <AccordionTrigger className="text-xs text-muted-foreground hover:text-foreground py-2 hover:no-underline font-medium">
-                      Opções Avançadas (Opcional)
+                      {t("flasher.advancedConfig")}
                     </AccordionTrigger>
                     <AccordionContent className="pt-2 pb-2 flex flex-col gap-3">
                       <div className="flex flex-col gap-1.5">
                         <Label className="text-xs font-semibold text-muted-foreground pl-0.5">
-                          Endereço do Servidor
+                          {t("flasher.backendIpLabel")}
                         </Label>
                         <div className="flex gap-2">
                           <Input
                             id="backend-ip"
-                            placeholder="Ex: 192.168.1.50"
+                            placeholder="Ex: 127.0.0.1"
                             value={backendIp}
                             onChange={(e) => setBackendIp(e.target.value)}
                             pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
@@ -927,10 +924,6 @@ export function CameraFlasher({
                             required
                           />
                         </div>
-                        <p className="text-[10px] text-muted-foreground leading-normal mt-0.5">
-                          IP e porta onde o CAMron está a correr. Geralmente não
-                          precisa de ser alterado.
-                        </p>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -941,16 +934,16 @@ export function CameraFlasher({
                     type="submit"
                     size="lg"
                     disabled={loading}
-                    className="w-full h-11 text-sm font-semibold cursor-pointer shadow-sm"
+                    className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md"
                   >
-                    Instalar Software
+                    {t("flasher.buttonConnectUsb")}
                   </Button>
                   <button
                     type="button"
                     onClick={handleResetWizard}
                     className="text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer text-center"
                   >
-                    Voltar
+                    {t("common.back")}
                   </button>
                 </div>
               </div>
@@ -966,11 +959,10 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  A preparar o software...
+                  {t("flasher.compilingSoftware")}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  Estamos a configurar o software especificamente para a sua
-                  câmara. Demora cerca de 10-20 segundos.
+                  {t("flasher.compilingWait")}
                 </p>
               </div>
             </div>
@@ -985,11 +977,10 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  A instalar software...
+                  {t("flasher.writing")}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  A enviar o software para o chip da câmara. Por favor,{" "}
-                  <strong>não desligue o cabo USB</strong>.
+                  {t("flasher.writing")}
                 </p>
               </div>
 
@@ -1021,11 +1012,10 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  A ligar à rede...
+                  {t("flasher.waitingHandshake")}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  A câmara está a iniciar e a estabelecer ligação à sua rede
-                  Wi-Fi.
+                  {t("flasher.waitingHandshake")}
                 </p>
               </div>
 
@@ -1034,8 +1024,7 @@ export function CameraFlasher({
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-left text-xs leading-normal">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span>
-                      Não conseguimos confirmar a ligação. Verifique se o Wi-Fi
-                      está a funcionar ou desligue e volte a ligar a câmara.
+                      {t("flasher.flashFailedStatus")}
                     </span>
                   </div>
                   <div className="flex gap-3">
@@ -1044,7 +1033,7 @@ export function CameraFlasher({
                       variant="outline"
                       className="flex-1 text-xs cursor-pointer"
                     >
-                      Tentar de Novo
+                      {t("common.back")}
                     </Button>
                     <Button
                       onClick={() => {
@@ -1052,7 +1041,7 @@ export function CameraFlasher({
                       }}
                       className="flex-1 text-xs cursor-pointer"
                     >
-                      Ignorar
+                      {t("common.continue")}
                     </Button>
                   </div>
                 </div>
@@ -1069,10 +1058,10 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  Ocorreu um erro
+                  {t("common.error")}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  {errorMsg || "Não foi possível concluir a configuração."}
+                  {errorMsg || t("flasher.flashFailedStatus")}
                 </p>
               </div>
 
@@ -1082,7 +1071,7 @@ export function CameraFlasher({
                   size="lg"
                   className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md bg-rose-600 hover:bg-rose-500 text-zinc-50 border-transparent"
                 >
-                  Tentar Novamente
+                  {t("common.continue")}
                 </Button>
                 {onCancel && (
                   <button
@@ -1090,7 +1079,7 @@ export function CameraFlasher({
                     onClick={onCancel}
                     className="text-xs text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
                   >
-                    Voltar
+                    {t("common.back")}
                   </button>
                 )}
               </div>
@@ -1108,11 +1097,10 @@ export function CameraFlasher({
 
               <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-bold text-foreground">
-                  Configuração Concluída!
+                  {t("flasher.setupDone")}
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                  A sua câmara foi configurada com sucesso e já está ligada à
-                  rede sem fios.
+                  {t("flasher.handshakedSuccessfully")}
                 </p>
               </div>
 
@@ -1122,7 +1110,7 @@ export function CameraFlasher({
                   size="lg"
                   className="w-full h-11 text-sm font-semibold cursor-pointer shadow-md bg-emerald-600 hover:bg-emerald-500 text-zinc-50 border-transparent"
                 >
-                  Concluir
+                  {t("common.continue")}
                 </Button>
               </div>
             </div>

@@ -10,15 +10,17 @@ import { CameraWizard } from "@/components/cameras/camera-wizard";
 import { WizardStepIdentity } from "@/components/cameras/wizard-step-identity";
 import { WizardStepDone } from "@/components/cameras/wizard-step-done";
 import { getCamera, updateCamera, type Camera } from "@/lib/api";
-
-const STEPS = [
-  { label: "Identidade" },
-  { label: "Concluído" },
-];
+import { useLanguage } from "@/lib/language-context";
 
 function EditCameraContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
+
+  const STEPS = [
+    { label: t("wizard.identity") },
+    { label: t("wizard.done") },
+  ];
 
   const id = searchParams.get("id") ?? "";
   const stepParam = parseInt(searchParams.get("step") ?? "1", 10);
@@ -30,16 +32,16 @@ function EditCameraContent() {
 
   useEffect(() => {
     if (!id) {
-      setLoadError("ID de câmara não fornecido.");
+      setLoadError(t("edit.loadError"));
       setLoadingCamera(false);
       return;
     }
     setLoadingCamera(true);
     getCamera(id)
       .then(setCamera)
-      .catch(() => setLoadError("Câmara não encontrada."))
+      .catch(() => setLoadError(t("edit.notFound")))
       .finally(() => setLoadingCamera(false));
-  }, [id]);
+  }, [id, t]);
 
   function goToStep(n: number) {
     const p = new URLSearchParams(searchParams.toString());
@@ -58,7 +60,7 @@ function EditCameraContent() {
     return (
       <div className="flex h-40 items-center justify-center text-muted-foreground gap-2">
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-sm">A carregar câmara...</span>
+        <span className="text-sm">{t("edit.loadingCamera")}</span>
       </div>
     );
   }
@@ -67,7 +69,7 @@ function EditCameraContent() {
     return (
       <div className="flex h-40 items-center justify-center text-rose-500 gap-2">
         <AlertCircle className="h-4 w-4" />
-        <span className="text-sm">{loadError ?? "Erro desconhecido."}</span>
+        <span className="text-sm">{loadError ?? t("edit.unknownError")}</span>
       </div>
     );
   }
@@ -75,16 +77,16 @@ function EditCameraContent() {
   return (
     <div className="flex flex-col gap-8 px-6 py-8">
       <PageHeader
-        eyebrow="Câmaras"
-        title={`Editar "${camera.name}"`}
-        description="Atualiza as informações da câmara."
+        eyebrow={t("edit.eyebrow")}
+        title={t("edit.title", { name: camera.name })}
+        description={t("edit.description")}
         actions={
           <Link
             href="/"
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
-            Voltar
+            {t("common.back")}
           </Link>
         }
       />

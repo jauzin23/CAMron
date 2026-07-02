@@ -14,6 +14,7 @@ import { WizardStepDone } from "@/components/cameras/wizard-step-done";
 import { createCamera, type Camera } from "@/lib/api";
 import { CameraFlasher } from "@/components/cameras/camera-flasher";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/language-context";
 
 function NewCameraContent() {
   const router = useRouter();
@@ -23,14 +24,15 @@ function NewCameraContent() {
   const stepParam = parseInt(searchParams.get("step") ?? "1", 10);
   const currentStep = Math.max(1, Math.min(stepParam, 3)) - 1; // 0-indexed max 3 steps
 
+  const { t, language } = useLanguage();
   const [createdCamera, setCreatedCamera] = useState<Camera | null>(null);
   const [skippedFlash, setSkippedFlash] = useState(false);
   const [flashingStarted, setFlashingStarted] = useState(false);
 
   const steps: Step[] = [
-    { label: "Identidade" },
-    { label: "Gravar Firmware", skipped: skippedFlash },
-    { label: "Concluído" },
+    { label: t("wizard.identity") },
+    { label: t("wizard.flash"), skipped: skippedFlash },
+    { label: t("wizard.done") },
   ];
 
   function goToStep(n: number) {
@@ -57,16 +59,16 @@ function NewCameraContent() {
   return (
     <div className="flex flex-col gap-8 px-6 py-8">
       <PageHeader
-        eyebrow="Câmaras"
-        title="Adicionar câmara"
-        description="Regista uma nova câmara ESP32 no sistema."
+        eyebrow={t("edit.eyebrow")}
+        title={t("dashboard.buttonAddCamera")}
+        description={language === "pt" ? "Regista uma nova câmara ESP32 no sistema." : "Registers a new ESP32 camera in the system."}
         actions={
           <Link
             href="/"
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
-            Voltar
+            {t("common.back")}
           </Link>
         }
       />
@@ -85,9 +87,9 @@ function NewCameraContent() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   className="text-center flex flex-col items-center gap-2 mb-2 overflow-hidden"
                 >
-                   <h3 className="text-xl font-bold text-zinc-100">Ligue a sua câmara</h3>
+                   <h3 className="text-xl font-bold text-zinc-100">{t("flasher.connectCameraPrompt")}</h3>
                    <p className="text-sm text-zinc-400 max-w-sm leading-relaxed">
-                      Para que a sua nova câmara comece a funcionar, necessitamos de a configurar através do cabo USB. Siga os passos abaixo.
+                      {t("flasher.connectCameraDesc")}
                    </p>
                 </motion.div>
               )}
@@ -118,7 +120,7 @@ function NewCameraContent() {
                   goToStep(3);
                 }}
               >
-                Configurar câmara mais tarde
+                {t("flasher.configureLater")}
               </Button>
             </div>
           </div>
@@ -141,12 +143,13 @@ import { DeviceRestrictedPage } from "@/components/device-restricted-page";
 
 export default function NewCameraPage() {
   const { isDesktop } = useDevice();
+  const { t, language } = useLanguage();
 
   if (!isDesktop) {
     return (
       <DeviceRestrictedPage
-        title="Adicionar Câmara Restrita"
-        description="A adição e configuração de novas câmaras requer a gravação de firmware via USB, funcionalidade apenas disponível em computadores (Desktop)."
+        title={language === "pt" ? "Adicionar Câmara Restrita" : "Add Camera Restricted"}
+        description={t("restricted.descNew")}
       />
     );
   }

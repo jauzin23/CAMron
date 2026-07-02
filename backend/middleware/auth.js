@@ -45,7 +45,7 @@ function verifySessionJWT(req, res, next) {
   }
 
   if (!token) {
-    return res.status(401).json({ error: "Token em falta", code: "TOKEN_MISSING" });
+    return res.status(401).json({ error: "Token missing", code: "TOKEN_MISSING" });
   }
 
   try {
@@ -54,9 +54,9 @@ function verifySessionJWT(req, res, next) {
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Sessão expirada", code: "TOKEN_EXPIRED" });
+      return res.status(401).json({ error: "Session expired", code: "TOKEN_EXPIRED" });
     }
-    return res.status(401).json({ error: "Token inválido", code: "TOKEN_INVALID" });
+    return res.status(401).json({ error: "Invalid token", code: "TOKEN_INVALID" });
   }
 }
 
