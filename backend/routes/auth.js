@@ -2,6 +2,7 @@
 
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 
 const router = express.Router();
 
@@ -9,12 +10,22 @@ const APP_PIN = process.env.APP_PIN;
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "15m";
 
+// Limit login attempts to 5 per minute per IP
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts, please try again later." },
+  skip: () => process.env.NODE_ENV === "test" && process.env.SKIP_RATE_LIMIT === "true",
+});
+
 /**
  * POST /api/auth/login
  * Validates the PIN and issues a short-lived JWT session token.
  * Body: { pin: string }
  */
-router.post("/login", (req, res) => {
+router.post("/login", loginLimiter, (req, res) => {
   const { pin } = req.body;
 
   if (!pin || typeof pin !== "string") {
