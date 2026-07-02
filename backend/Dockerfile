@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-serial \
     python-is-python3 \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Install arduino-cli

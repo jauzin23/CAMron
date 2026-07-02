@@ -20,7 +20,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WarpBackground } from "@/components/ui/warp-background";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -87,15 +91,24 @@ export function LoginScreen() {
               <span>{language === "en" ? "EN" : "PT"}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[140px]">
+          <DropdownMenuContent
+            align="end"
+            className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[140px]"
+          >
             <DropdownMenuRadioGroup
               value={language}
               onValueChange={(val) => setLanguage(val as Language)}
             >
-              <DropdownMenuRadioItem value="en" className="text-xs cursor-pointer">
+              <DropdownMenuRadioItem
+                value="en"
+                className="text-xs cursor-pointer"
+              >
                 English
               </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="pt" className="text-xs cursor-pointer">
+              <DropdownMenuRadioItem
+                value="pt"
+                className="text-xs cursor-pointer"
+              >
                 Português
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
@@ -107,11 +120,11 @@ export function LoginScreen() {
       <div className="relative z-10 w-full max-w-[360px]">
         <Card className="w-full">
           <CardHeader className="flex flex-col items-center space-y-2 pb-4 pt-6">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden mb-1">
+            <div className="flex h-15 w-15 items-center justify-center overflow-hidden mb-1">
               <img
                 src="/logo.png"
                 alt="CAMron Logo"
-                className="h-12 w-12 object-contain"
+                className="h-15 w-15 object-contain"
               />
             </div>
             <CardTitle className="text-xl font-semibold tracking-tight text-center">
