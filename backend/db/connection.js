@@ -10,14 +10,15 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-const DB_PATH = path.join(DATA_DIR, "camron.db");
+const DB_PATH = process.env.NODE_ENV === "test" ? ":memory:" : path.join(DATA_DIR, "camron.db");
 
 const db = new Database(DB_PATH);
 
-// Enable WAL mode for better concurrent performance
-db.pragma("journal_mode = WAL");
+if (process.env.NODE_ENV !== "test") {
+  // Enable WAL mode for better concurrent performance
+  db.pragma("journal_mode = WAL");
+  console.log(`[db] SQLite opened at ${DB_PATH}`);
+}
 db.pragma("foreign_keys = ON");
-
-console.log(`[db] SQLite opened at ${DB_PATH}`);
 
 module.exports = db;

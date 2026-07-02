@@ -405,6 +405,17 @@ router.get("/compile/stream/:cameraId", (req, res) => {
 // GET /api/download/:cameraId/:filename
 router.get("/download/:cameraId/:filename", (req, res) => {
   const { cameraId, filename } = req.params;
+
+  // Path traversal protection
+  if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+    return res.status(400).json({ error: "Invalid filename." });
+  }
+
+  // Only allow .bin files to be downloaded
+  if (!filename.endsWith(".bin")) {
+    return res.status(400).json({ error: "Only .bin files can be downloaded." });
+  }
+
   const compilation = compilations[cameraId];
 
   // We check memory store or DB

@@ -2,7 +2,6 @@
 
 const express = require("express");
 const crypto = require("crypto");
-const { v4: uuidv4 } = require("uuid");
 const net = require("net");
 const http = require("http");
 
@@ -53,37 +52,39 @@ function pingCamera(ip, port = 81, timeout = 2000) {
 }
 
 // Ping cameras every 5 seconds to update their online status
-setInterval(async () => {
-  try {
-    const cameras = db.prepare("SELECT id, ip, last_seen, flash_active FROM cameras WHERE ip IS NOT NULL AND ip != ''").all();
-    let changed = false;
-    await Promise.all(
-      cameras.map(async (c) => {
-        const isOnline = await pingCamera(c.ip, 81, 2000);
-        if (isOnline) {
-          db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(now(), c.id);
-          changed = true;
-        } else {
-          const wasActive = c.flash_active === 1;
-          let wasOnline = false;
-          if (c.last_seen) {
-            const diff = (Date.now() - new Date(c.last_seen).getTime()) / 1000;
-            if (diff < 10) wasOnline = true;
-          }
-          if (wasActive || wasOnline) {
-            db.prepare("UPDATE cameras SET flash_active = 0 WHERE id = ?").run(c.id);
+if (process.env.NODE_ENV !== "test") {
+  setInterval(async () => {
+    try {
+      const cameras = db.prepare("SELECT id, ip, last_seen, flash_active FROM cameras WHERE ip IS NOT NULL AND ip != ''").all();
+      let changed = false;
+      await Promise.all(
+        cameras.map(async (c) => {
+          const isOnline = await pingCamera(c.ip, 81, 2000);
+          if (isOnline) {
+            db.prepare("UPDATE cameras SET last_seen = ? WHERE id = ?").run(now(), c.id);
             changed = true;
+          } else {
+            const wasActive = c.flash_active === 1;
+            let wasOnline = false;
+            if (c.last_seen) {
+              const diff = (Date.now() - new Date(c.last_seen).getTime()) / 1000;
+              if (diff < 10) wasOnline = true;
+            }
+            if (wasActive || wasOnline) {
+              db.prepare("UPDATE cameras SET flash_active = 0 WHERE id = ?").run(c.id);
+              changed = true;
+            }
           }
-        }
-      })
-    );
-    if (changed) {
-      cameraEmitter.emit("change");
+        })
+      );
+      if (changed) {
+        cameraEmitter.emit("change");
+      }
+    } catch (err) {
+      console.error("[cameras background ping] Error:", err.message);
     }
-  } catch (err) {
-    console.error("[cameras background ping] Error:", err.message);
-  }
-}, 5000);
+  }, 5000);
+}
 
 /**
  * @swagger
@@ -138,7 +139,7 @@ router.post("/", (req, res) => {
     return res.status(400).json({ error: "Missing required field: name" });
   }
 
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   const api_key = generateApiKey();
   const ts = now();
 

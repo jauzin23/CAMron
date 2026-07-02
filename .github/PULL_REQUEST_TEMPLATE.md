@@ -21,5 +21,7 @@ Explain how you tested your changes. Describe the steps you took to verify that 
 
 - [ ] My code follows the project guidelines.
 - [ ] I have tested my changes locally.
+- [ ] I have run the unit tests and they all pass (`npm test` in both `backend/` and `frontend/`).
+- [ ] I have verified that there are no TypeScript compilation errors (`npm run build` or `npx tsc --noEmit` in `frontend/`).
 - [ ] I have updated the documentation if needed.
 - [ ] I have linked this pull request to an assigned issue.
