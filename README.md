@@ -26,23 +26,61 @@
 
 ---
 
+## Table of Contents
+
+- [CAMron](#camron)
+  - [Table of Contents](#table-of-contents)
+  - [What is CAMron?](#what-is-camron)
+    - [Key Features](#key-features)
+  - [Demo](#demo)
+  - [Screenshots](#screenshots)
+  - [Supported Hardware](#supported-hardware)
+  - [Browser Compatibility](#browser-compatibility)
+  - [How it Works](#how-it-works)
+  - [Architecture](#architecture)
+  - [Getting Started](#getting-started)
+  - [Flashing Guide](#flashing-guide)
+    - [Hardware you'll need](#hardware-youll-need)
+    - [Drivers](#drivers)
+    - [Connect the hardware](#connect-the-hardware)
+    - [Configure wifi](#configure-wifi)
+    - [Write the firmware](#write-the-firmware)
+  - [Security](#security)
+  - [Roadmap](#roadmap)
+  - [Contributing](#contributing)
+  - [FAQ](#faq)
+      - [Why can't the browser find any serial ports?](#why-cant-the-browser-find-any-serial-ports)
+      - [Why did the first container startup take so long?](#why-did-the-first-container-startup-take-so-long)
+      - [Why does the compilation process take a long time?](#why-does-the-compilation-process-take-a-long-time)
+      - [Why does the camera fail to connect to my wifi?](#why-does-the-camera-fail-to-connect-to-my-wifi)
+      - [Why does the camera show as offline in the dashboard?](#why-does-the-camera-show-as-offline-in-the-dashboard)
+  - [License](#license)
+
+---
+
 ## What is CAMron?
 
-Most DIY camera projects are difficult to set up. They require downloading an IDE , installing packages, managing libraries, editing C++ files and manually flashing.
+Most DIY camera projects are a pain to set up. You need to download an IDE, install packages, manage libraries, edit C++ files and manually flash the firmware.
 Commercial security cameras are expensive, require subscriptions, and store video on external cloud servers.
 
-**CAMron** is a simpler alternative. It is a self-hosted platform for **ESP32-CAM** modules that compiles and flashes custom firmware directly from your browser using the **Web Serial API**. No code editing or compiler installation is required on the user's end.
+**CAMron** is a simpler alternative. It's a self-hosted platform for **ESP32-CAM** modules that compiles and flashes custom firmware straight from your browser using the **Web Serial API**. No code editing or compiler installation required on your end.
 
 ### Key Features
 
-- **No Code Editing:** Enter your wifi in the web UI, and the backend handles the C++ compilation.
-- **Browser Flashing:** Writes the binary directly to your ESP32-CAM over USB on your browser.
-- **Local and Private:** No cloud dependencies. Video does not leave your local network.
-- **Camera Management:** Monitor streams and toggle camera flashlights from a single dashboard.
+- **No Code Editing**: enter your wifi in the web UI and the backend handles the C++ compilation for you.
+- **Browser Flashing**: writes the binary straight to your ESP32-CAM over USB, no external flashing tool needed.
+- **Local and Private**: no cloud dependencies, video never leaves your local network.
+- **Camera Management**: monitor streams and toggle camera flashlights from a single dashboard.
 
 ## Demo
 
 ![CAMron Demo](./docs/demo.gif)
+
+## Screenshots
+
+<!-- TODO: adicionar screenshot de dashboard principal aqui -->
+<!-- TODO: adicionar screenshot de gestão de câmaras aqui -->
+<!-- TODO: adicionar screenshot de ecrã de flashing aqui -->
 
 ---
 
@@ -66,15 +104,32 @@ This feature has been tested on Google Chrome, Microsoft Edge and Opera (windows
 ## How it Works
 
 ```mermaid
-flowchart TD
-    A[Enter wifi SSID & Password in UI] --> B[Frontend POSTs config to Backend]
-    B --> C[Backend generates camera ID & API key]
-    C --> D[Backend copies C++ template to temp directory]
-    D --> E[Backend writes config to config.h]
-    E --> F[Backend runs arduino-cli to compile the firmware]
-    F --> G[Backend sends compiled binaries to frontend]
-    G --> H[Frontend writes to ESP32-CAM via Web Serial API]
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant Backend
+    participant ESP32-CAM
+
+    User->>Frontend: Enter wifi SSID & password
+    Frontend->>Backend: POST config
+    Backend->>Backend: Generate camera ID & API key
+    Backend->>Backend: Copy C++ template, write config.h
+    Backend->>Backend: Run arduino-cli to compile firmware
+    Backend-->>Frontend: Return compiled binary
+    Frontend->>ESP32-CAM: Flash binary via Web Serial API
 ```
+
+## Architecture
+
+The system is split into a Next.js frontend and a Node.js/Express backend, talking over REST and SSE, with the backend proxying the camera's video stream so multiple dashboard clients can watch it at once.
+
+```mermaid
+flowchart LR
+    A[Frontend Browser] <-->|REST / SSE / MJPEG| B(Node.js Backend & SQLite)
+    B <-->|REST / MJPEG| C[ESP32-CAM]
+```
+
+Full breakdown of the database schema, the setup/flashing sequence, and the runtime registration/streaming flow: [docs/architecture.md](docs/architecture.md).
 
 ---
 
@@ -87,6 +142,18 @@ flowchart TD
    ```
 2. **Configure environment variables:**
    Copy `.env.example` to `.env` and set `HOST_IP` to your computer's local network IP (e.g. `192.168.1.100`). Do not use `localhost` or `127.0.0.1`.
+
+   | Name                      | Required? | Description                                                      | Example                 |
+   | ------------------------- | --------- | ---------------------------------------------------------------- | ----------------------- |
+   | `FRONTEND_PORT`           | No        | Public port for the Nginx gateway (accessible by browsers).      | `3005`                  |
+   | `BACKEND_PORT`            | No        | Internal port for the local Express backend (non-Docker dev).    | `3000`                  |
+   | `CAMERA_BEARER_TOKEN`     | Yes       | Global bearer token shared with firmware for API authentication. | `fd70b9...`             |
+   | `HOST_IP`                 | Yes       | Local LAN IP of the host machine (where backend is running).     | `192.168.1.100`         |
+   | `NEXT_PUBLIC_BACKEND_URL` | No        | Local backend API URL used by the frontend browser bundle.       | `http://localhost:3000` |
+   | `APP_PIN`                 | Yes       | 4-digit security PIN to access the dashboard.                    | `1234`                  |
+   | `JWT_SECRET`              | Yes       | Secret key used for signing session JWT tokens.                  | `secret_key`            |
+   | `JWT_EXPIRY`              | No        | JWT token expiration time (e.g., 15m, 1h, 1d).                   | `15m`                   |
+
 3. **Start the application:**
    ```bash
    docker-compose up
@@ -94,6 +161,53 @@ flowchart TD
    > **Note:** The first time you run this command on a new machine, the backend container will automatically download and install the ESP32 core into a persistent volume. This initial setup takes **5-10 minutes**, but subsequent container restarts and app builds will start instantly.
 4. **Open the web dashboard:**
    Navigate to `http://localhost:3005` in Chrome or Edge.
+
+---
+
+## Flashing Guide
+
+Once the app is running, here's how to get a physical camera flashed and online.
+
+### Hardware you'll need
+
+- An ESP32-CAM module (standard AI-Thinker board).
+- An ESP32-CAM-MB USB programmer adapter. This is the only flashing method that's actually been tested, other programmers (FTDI, etc) might work in theory but aren't verified, so they're not listed as supported.
+- A data-transfer USB cable, not a charge-only one.
+
+### Drivers
+
+Most ESP32-CAM-MB boards use either a **CH340** or a **CP2102** USB-to-serial chip, usually printed on the chip itself near the USB port. If the flashing page shows "No compatible serial ports found" after you connect, that's almost always a missing driver for one of those two chips. Install the matching driver for your OS, then fully restart your browser (not just the tab) before trying again.
+
+### Connect the hardware
+
+1. Plug the ESP32-CAM onto the ESP32-CAM-MB adapter, then connect the adapter to your computer via USB.
+2. On the flashing page, click connect. The browser will prompt you to pick a serial port, select the one that corresponds to your programmer and confirm.
+
+### Configure wifi
+
+Enter the SSID and password for the network the camera will use. The ESP32-CAM only supports **2.4GHz** wifi, so if your router broadcasts a single combined SSID for both bands, connect to the 2.4GHz one specifically or split the bands in your router settings.
+
+### Write the firmware
+
+The backend compiles the firmware in the background using the wifi settings you just entered, this takes only few seconds after the first compile. Once it's done, the frontend writes the binaries straight to the ESP32-CAM. Keep the board connected until the progress bar finishes.
+
+The camera reboots automatically once flashing completes and connects to the wifi you configured. It should show up as online in the dashboard within a few seconds. If it doesn't, check [Why does the camera show as offline in the dashboard?](#why-does-the-camera-show-as-offline-in-the-dashboard)
+
+---
+
+## Security
+
+CAMron is designed for trusted local networks. Its current security model assumes that your home network is safe.
+
+- **Dashboard Authentication:** Access to the web dashboard is protected by a 4-digit PIN (set via the `APP_PIN` environment variable), which generates a short-lived JWT session token for the browser.
+- **Camera Authentication:** Each camera generates a unique 256-bit API key during the flashing process. This key is stored in plaintext in the backend's SQLite database and embedded in the camera's firmware. The camera uses this key as a Bearer token to authorize connections from the backend (like viewing the stream or toggling the flash).
+- **External Access:** **Do not expose CAMron directly to the internet.** The dashboard relies on a simple PIN and all traffic, including the video stream, is transmitted via unencrypted HTTP. If you need remote access, use a secure VPN (like Tailscale or WireGuard) or place CAMron behind a reverse proxy (like Nginx or Cloudflare Tunnels) with SSL and strong authentication.
+
+---
+
+## Roadmap
+
+- Support for microcontroller boards other than the standard ESP32-CAM.
 
 ---
 
@@ -111,7 +225,7 @@ You probably dont have the needed drivers for your programmer chip. Install them
 
 #### Why did the first container startup take so long?
 
-To keep the Docker image small (~300MB instead of 11GB), the ESP32 core is not baked into the image. Instead, it is installed into a persistent Docker volume on the very first start. This takes 5-10 minutes depending on your internet connection. Subsequent starts and code updates are instant.
+To keep the Docker image small (~300MB instead of 11GB), the ESP32 core is not baked into the image. Instead, it is installed into a persistent Docker volume on the very first start. This takes 5-10 minutes depending on your internet connection. Subsequent starts and code updates are way faster.
 
 #### Why does the compilation process take a long time?
 
@@ -121,7 +235,7 @@ The first build compiles all base dependencies. Subsequent compilations are cach
 
 This might be due to a couple of reasons:
 
-- The ESP32-CAM only supports **2.4 GHz** wifi networks (it cannot connect to 5 GHz networks).
+- The ESP32-CAM **only** supports **2.4 GHz** wifi networks.
 - Check the SSID and password for typos and flash the board again.
 
 #### Why does the camera show as offline in the dashboard?
