@@ -45,7 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
 
 WORKDIR /app
-RUN mkdir -p /app/data && chown -R node:node /app
+RUN mkdir -p /app/data /home/node/.arduino15 && chown -R node:node /app /home/node/.arduino15
 
 # Copy only the production node_modules (already pruned in builder stage)
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
