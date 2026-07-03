@@ -54,9 +54,10 @@ export const en = {
     addAnother: "Add another camera",
     description: "Registers a new ESP32 camera in the system.",
     flashNowTitle: "Flash firmware now?",
-    flashNowDesc: 'The camera "{name}" was created. Do you want to flash the ESP32 firmware now?',
-    flashButton: "Flash Firmware",
-    configureLater: "Configure later",
+    flashNowDesc:
+      'The camera "{name}" was created. Do you want to flash the ESP32 firmware now?',
+    flashButton: "Yes",
+    configureLater: "No, Configure later",
   },
   flasher: {
     connectUsb: "Connect via USB",
@@ -73,7 +74,7 @@ export const en = {
     configureLater: "Configure camera later",
     connectCameraPrompt: "Connect your camera",
     connectCameraDesc:
-      "To get your new camera up and running, we need to configure it using a USB cable. Follow the steps below.",
+      "To get your camera up and running, we need to configure it using a USB cable. Follow the steps.",
     stepConnect: "Connect",
     stepCompile: "Compile",
     stepFlash: "Flash",

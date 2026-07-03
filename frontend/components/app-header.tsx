@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, LayoutDashboard, Video, Globe } from "lucide-react";
 
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,14 +50,9 @@ function LanguageSelector() {
     <div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-2.5 text-xs gap-1.5 bg-secondary/20 border-border/50 cursor-pointer"
-          >
-            <Globe className="h-3.5 w-3.5 opacity-70 text-muted-foreground" />
-            <span>{language === "en" ? "EN" : "PT"}</span>
-          </Button>
+          <ShimmerButton className="shadow-2xl text-xs p-1 px-3">
+            {language === "en" ? "EN" : "PT"}
+          </ShimmerButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
@@ -87,7 +83,6 @@ function LanguageSelector() {
 
 export function AppHeader() {
   const pathname = usePathname();
-  const [timeString, setTimeString] = useState<string>("");
   const { t } = useLanguage();
   const [cameraCount, setCameraCount] = useState<number | null>(null);
 
@@ -130,19 +125,6 @@ export function AppHeader() {
       disabled: cameraCount === 0,
     },
   ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      const pad = (n: number) => n.toString().padStart(2, "0");
-      setTimeString(
-        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(
-          now.getHours(),
-        )}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`,
-      );
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60 select-none">
@@ -253,13 +235,6 @@ export function AppHeader() {
 
         <div className="hidden sm:flex items-center gap-4">
           <LanguageSelector />
-          {timeString ? (
-            <div className="font-mono text-xs text-muted-foreground bg-secondary/40 border border-border/50 px-2.5 py-1 rounded select-none">
-              {timeString}
-            </div>
-          ) : (
-            <Skeleton className="h-6 w-32" />
-          )}
         </div>
       </div>
     </header>

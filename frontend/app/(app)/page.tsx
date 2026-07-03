@@ -8,6 +8,7 @@ import { AuroraText } from "@/components/ui/aurora-text";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusDot } from "@/components/ui/status-dot";
+import { RainbowButton } from "@/components/ui/rainbow-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -361,7 +362,11 @@ export default function ControlCenterPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleCopyIP(camera.ip, camera.name)}
-                  className="cursor-pointer gap-2 font-mono text-xs focus:bg-zinc-900 focus:text-zinc-50"
+                  disabled={!camera.ip}
+                  className={cn(
+                    "gap-2 font-mono text-xs focus:bg-zinc-900 focus:text-zinc-50",
+                    !camera.ip ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  )}
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>{t("dashboard.copyIp")}</span>
@@ -449,20 +454,20 @@ export default function ControlCenterPage() {
           filterColumnKey="name"
           filterPlaceholder={t("dashboard.searchPlaceholder")}
           actionButton={
-            <Button
+            <RainbowButton
               className={cn(
                 "h-9 gap-2 font-medium w-full sm:w-auto",
                 !isDesktop || camerasLoading
                   ? "opacity-50 cursor-not-allowed"
                   : "cursor-pointer",
               )}
+              variant="outline"
               onClick={() => isDesktop && router.push("/cameras/new")}
               disabled={camerasLoading || !isDesktop}
-              title={!isDesktop ? t("restricted.descNew") : undefined}
             >
-              <Plus className="h-4 w-4" />
+              <Plus />
               {t("dashboard.buttonAddCamera")}
-            </Button>
+            </RainbowButton>
           }
         />
       </div>

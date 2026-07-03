@@ -38,7 +38,7 @@ export const pt = {
   },
   wizard: {
     identity: "Identidade",
-    flash: "Gravar Firmware",
+    flash: "Gravar",
     done: "Concluído",
     cameraNameRequired: "O nome da câmara é obrigatório.",
     genericError: "Ocorreu um erro. Tenta novamente.",
@@ -54,9 +54,10 @@ export const pt = {
     addAnother: "Adicionar outra câmara",
     description: "Regista uma nova câmara ESP32 no sistema.",
     flashNowTitle: "Gravar firmware agora?",
-    flashNowDesc: 'A câmara "{name}" foi criada com sucesso. Queres gravar o firmware ESP32 agora?',
-    flashButton: "Gravar Firmware",
-    configureLater: "Configurar mais tarde",
+    flashNowDesc:
+      'A câmara "{name}" foi criada com sucesso. Queres gravar o firmware ESP32 agora?',
+    flashButton: "Sim",
+    configureLater: "Não, Configurar mais tarde",
   },
   flasher: {
     connectUsb: "Ligar via USB",
@@ -74,7 +75,7 @@ export const pt = {
     configureLater: "Configurar câmara mais tarde",
     connectCameraPrompt: "Ligue a sua câmara",
     connectCameraDesc:
-      "Para que a sua nova câmara comece a funcionar, necessitamos de a configurar através do cabo USB. Siga os passos abaixo.",
+      "Para que a sua câmara comece a funcionar, necessitamos de a configurar através do cabo USB. Siga os passos.",
     stepConnect: "Ligar",
     stepCompile: "Compilar",
     stepFlash: "Gravar",

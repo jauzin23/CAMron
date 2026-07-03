@@ -111,11 +111,9 @@ function NewCameraContent() {
                 <Button
                   onClick={handleFlashNow}
                   size="lg"
-                  className="w-full gap-2.5 font-semibold h-11 shadow-md"
+                  className="w-full gap-2.5 font-semibold h-11 shadow-md flex items-center justify-center"
                 >
-                  <Zap className="h-4 w-4" />
                   {t("wizard.flashButton")}
-                  <ArrowRight className="h-4 w-4 ml-auto" />
                 </Button>
 
                 <Button
@@ -124,7 +122,6 @@ function NewCameraContent() {
                   size="lg"
                   className="w-full gap-2 font-medium h-11 text-muted-foreground hover:text-foreground"
                 >
-                  <SkipForward className="h-4 w-4" />
                   {t("wizard.configureLater")}
                 </Button>
               </div>
