@@ -32,7 +32,6 @@
   - [Table of Contents](#table-of-contents)
   - [What is CAMron?](#what-is-camron)
     - [Key Features](#key-features)
-  - [Demo](#demo)
   - [Screenshots](#screenshots)
   - [Supported Hardware](#supported-hardware)
   - [Browser Compatibility](#browser-compatibility)
@@ -79,18 +78,13 @@ Commercial security cameras are expensive, require subscriptions, and store vide
 - **Local and Private**: no cloud dependencies, video never leaves your local network.
 - **Camera Management**: monitor streams and toggle camera flashlights from a single dashboard.
 
-## Demo
-
-<video controls width="100%">
-  <source src="./docs/demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
 ## Screenshots
 
-<!-- TODO: adicionar screenshot de dashboard principal aqui -->
-<!-- TODO: adicionar screenshot de gestão de câmaras aqui -->
-<!-- TODO: adicionar screenshot de ecrã de flashing aqui -->
+<div align="center">
+  <img src="./docs/screenshots/view.png" alt="CAMron View" width="31%">
+  <img src="./docs/screenshots/dash.png" alt="CAMron Dashboard" width="31%">
+  <img src="./docs/screenshots/flashing.png" alt="CAMron Flashing" width="31%">
+</div>
 
 ---
 
