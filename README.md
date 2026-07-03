@@ -81,7 +81,10 @@ Commercial security cameras are expensive, require subscriptions, and store vide
 
 ## Demo
 
-![CAMron Demo](./docs/demo.gif)
+<video controls width="100%">
+  <source src="./docs/demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
 ## Screenshots
 

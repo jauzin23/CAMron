@@ -28,10 +28,10 @@ export default function RootLayout({
   return (
     <html
       lang="pt-PT"
-      className={`dark ${geistSans.variable} ${geistMono.variable} bg-background`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} bg-background h-screen overflow-hidden`}
       suppressHydrationWarning
     >
-      <body className="font-sans antialiased" suppressHydrationWarning>
+      <body className="font-sans antialiased h-screen overflow-hidden" suppressHydrationWarning>
         <LanguageProvider>
           <DeviceProvider>
             {children}

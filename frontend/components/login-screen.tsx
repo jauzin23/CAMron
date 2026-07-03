@@ -72,7 +72,7 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 px-4 overflow-hidden select-none">
+    <div className="relative h-screen w-full flex items-center justify-center bg-zinc-950 px-4 overflow-hidden select-none">
       <WarpBackground className="absolute inset-0 size-full rounded-none border-none p-0 bg-transparent opacity-40 pointer-events-none">
         {null}
       </WarpBackground>
