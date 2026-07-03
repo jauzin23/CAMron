@@ -39,6 +39,12 @@
   - [How it Works](#how-it-works)
   - [Architecture](#architecture)
   - [Getting Started](#getting-started)
+    - [1. Create a project directory](#1-create-a-project-directory)
+    - [2. Download the Nginx configuration](#2-download-the-nginx-configuration)
+    - [3. Create the Docker Compose file](#3-create-the-docker-compose-file)
+    - [4. Start the application](#4-start-the-application)
+    - [5. Open the web dashboard](#5-open-the-web-dashboard)
+    - [Configuration Variables](#configuration-variables)
   - [Flashing Guide](#flashing-guide)
     - [Hardware you'll need](#hardware-youll-need)
     - [Drivers](#drivers)
@@ -48,6 +54,7 @@
   - [Security](#security)
   - [Roadmap](#roadmap)
   - [Contributing](#contributing)
+    - [Local Development](#local-development)
   - [FAQ](#faq)
       - [Why can't the browser find any serial ports?](#why-cant-the-browser-find-any-serial-ports)
       - [Why did the first container startup take so long?](#why-did-the-first-container-startup-take-so-long)
@@ -135,32 +142,100 @@ Full breakdown of the database schema, the setup/flashing sequence, and the runt
 
 ## Getting Started
 
-1. **Clone the repo:**
-   ```bash
-   git clone https://github.com/jauzin23/CAMron.git
-   cd CAMron
-   ```
-2. **Configure environment variables:**
-   Copy `.env.example` to `.env` and set `HOST_IP` to your computer's local network IP (e.g. `192.168.1.100`). Do not use `localhost` or `127.0.0.1`.
+Just want to run CAMron? Follow the steps below using our pre-built Docker images. If you want to contribute instead skip to [Local Development](#local-development).
 
-   | Name                      | Required? | Description                                                      | Example                 |
-   | ------------------------- | --------- | ---------------------------------------------------------------- | ----------------------- |
-   | `FRONTEND_PORT`           | No        | Public port for the Nginx gateway (accessible by browsers).      | `3005`                  |
-   | `BACKEND_PORT`            | No        | Internal port for the local Express backend (non-Docker dev).    | `3000`                  |
-   | `CAMERA_BEARER_TOKEN`     | Yes       | Global bearer token shared with firmware for API authentication. | `fd70b9...`             |
-   | `HOST_IP`                 | Yes       | Local LAN IP of the host machine (where backend is running).     | `192.168.1.100`         |
-   | `NEXT_PUBLIC_BACKEND_URL` | No        | Local backend API URL used by the frontend browser bundle.       | `http://localhost:3000` |
-   | `APP_PIN`                 | Yes       | 4-digit security PIN to access the dashboard.                    | `1234`                  |
-   | `JWT_SECRET`              | Yes       | Secret key used for signing session JWT tokens.                  | `secret_key`            |
-   | `JWT_EXPIRY`              | No        | JWT token expiration time (e.g., 15m, 1h, 1d).                   | `15m`                   |
+### 1. Create a project directory
 
-3. **Start the application:**
-   ```bash
-   docker-compose up
-   ```
-   > **Note:** The first time you run this command on a new machine, the backend container will automatically download and install the ESP32 core into a persistent volume. This initial setup takes **5-10 minutes**, but subsequent container restarts and app builds will start instantly.
-4. **Open the web dashboard:**
-   Navigate to `http://localhost:3005` in Chrome or Edge.
+```bash
+mkdir camron && cd camron
+```
+
+### 2. Download the Nginx configuration
+
+```bash
+# On Linux / macOS / Git Bash / PowerShell:
+curl -L -O https://raw.githubusercontent.com/jauzin23/CAMron/main/nginx.conf
+```
+
+### 3. Create the Docker Compose file
+
+Create a file named `docker-compose.yml` in that directory and paste the following:
+
+```yaml
+services:
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "${FRONTEND_PORT:-3005}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/jauzin23/camron-backend:latest
+    environment:
+      - PORT=3000
+      - CAMERA_BEARER_TOKEN=${CAMERA_BEARER_TOKEN:-your_bearer_token_here}
+      - HOST_IP=${HOST_IP:-your_computer_local_ip_here}
+      - ARDUINO_CLI_PATH=/usr/local/bin/arduino-cli
+      - PUBLIC_PORT=${FRONTEND_PORT:-3005}
+      - APP_PIN=${APP_PIN:-1234}
+      - JWT_SECRET=${JWT_SECRET:-some_random_secret_key_here}
+      - JWT_EXPIRY=${JWT_EXPIRY:-15m}
+    volumes:
+      - backend-data:/app/data
+      - arduino-core-data:/home/node/.arduino15
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/jauzin23/camron-frontend:latest
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+  arduino-core-data:
+```
+
+### 4. Start the application
+
+Set the values in a `.env` file (see [Configuration Variables](#configuration-variables) below), or define them directly in the `docker-compose.yml` environment section.
+
+```bash
+docker-compose up -d
+```
+
+> **Note:** The first time you run this command, the backend container will automatically download and install the ESP32 core into a persistent volume. This initial setup takes **5-10 minutes**, but subsequent container restarts and app builds will start instantly.
+
+### 5. Open the web dashboard
+
+Navigate to `http://localhost:3005` in Chrome or Edge.
+
+### Configuration Variables
+
+Create a `.env` file in the same directory if you want to customize your installation:
+
+| Name                  | Required? | Description                                                      | Example         |
+| --------------------- | --------- | ---------------------------------------------------------------- | --------------- |
+| `FRONTEND_PORT`       | No        | Public port for the Nginx gateway (accessible by browsers).      | `3005`          |
+| `CAMERA_BEARER_TOKEN` | Yes\*     | Global bearer token shared with firmware for API authentication. | `fd70b9...`     |
+| `HOST_IP`             | Yes\*     | Local LAN IP of the host machine (where backend is running).     | `192.168.1.100` |
+| `APP_PIN`             | Yes\*     | 4-digit security PIN to access the dashboard.                    | `1234`          |
+| `JWT_SECRET`          | Yes\*     | Secret key used for signing session JWT tokens.                  | `secret_key`    |
+| `JWT_EXPIRY`          | No        | JWT token expiration time (e.g., 15m, 1h, 1d).                   | `15m`           |
+
+_\*If not defined in a `.env` file, replace these placeholder values directly in the `docker-compose.yml` environment section._
+
+The two variables below only apply if you're running the backend and frontend outside Docker, see [Local Development](#local-development):
+
+| Name                      | Required? | Description                                                   | Example                 |
+| ------------------------- | --------- | ------------------------------------------------------------- | ----------------------- |
+| `BACKEND_PORT`            | No        | Internal port for the local Express backend (non-Docker dev). | `3000`                  |
+| `NEXT_PUBLIC_BACKEND_URL` | No        | Local backend API URL used by the frontend browser bundle.    | `http://localhost:3000` |
 
 ---
 
@@ -185,11 +260,11 @@ Most ESP32-CAM-MB boards use either a **CH340** or a **CP2102** USB-to-serial ch
 
 ### Configure wifi
 
-Enter the SSID and password for the network the camera will use. The ESP32-CAM only supports **2.4GHz** wifi, so if your router broadcasts a single combined SSID for both bands, connect to the 2.4GHz one specifically or split the bands in your router settings.
+Enter the SSID and password for the network the camera will use. The ESP32-CAM **only** supports **2.4GHz** wifi.
 
 ### Write the firmware
 
-The backend compiles the firmware in the background using the wifi settings you just entered, this takes only few seconds after the first compile. Once it's done, the frontend writes the binaries straight to the ESP32-CAM. Keep the board connected until the progress bar finishes.
+The backend compiles the firmware in the background using the wifi settings you just entered, this takes only a few seconds after the first compile. Once it's done, the frontend writes the binaries straight to the ESP32-CAM. Keep the board connected until the progress bar finishes.
 
 The camera reboots automatically once flashing completes and connects to the wifi you configured. It should show up as online in the dashboard within a few seconds. If it doesn't, check [Why does the camera show as offline in the dashboard?](#why-does-the-camera-show-as-offline-in-the-dashboard)
 
@@ -207,13 +282,25 @@ CAMron is designed for trusted local networks. Its current security model assume
 
 ## Roadmap
 
-- Support for microcontroller boards other than the standard ESP32-CAM.
-
----
+COMING SOON
 
 ## Contributing
 
 For details on how to contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Local Development
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jauzin23/CAMron.git
+   cd CAMron
+   ```
+2. **Configure environment variables:**
+   Copy `.env.example` to `.env` and set `HOST_IP` to your computer's local network IP.
+3. **Build and run from source:**
+   ```bash
+   docker-compose up --build
+   ```
 
 ---
 
