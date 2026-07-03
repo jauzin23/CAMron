@@ -30,12 +30,7 @@ import {
   Loader2,
   Cpu,
 } from "lucide-react";
-import {
-  getCameras,
-  deleteCamera,
-  toggleFlash,
-  type Camera,
-} from "@/lib/api";
+import { getCameras, deleteCamera, toggleFlash, type Camera } from "@/lib/api";
 import { useDevice } from "@/lib/device-context";
 import { useLanguage } from "@/lib/language-context";
 
@@ -64,17 +59,20 @@ export default function ControlCenterPage() {
   const [camerasLoading, setCamerasLoading] = useState(true);
 
   // Load cameras from API
-  const loadCameras = useCallback(async (showLoading = true) => {
-    if (showLoading) setCamerasLoading(true);
-    try {
-      const data = await getCameras();
-      setCameras(data);
-    } catch (err) {
-      if (showLoading) toast.error(t("dashboard.loadCamerasError"));
-    } finally {
-      if (showLoading) setCamerasLoading(false);
-    }
-  }, [t]);
+  const loadCameras = useCallback(
+    async (showLoading = true) => {
+      if (showLoading) setCamerasLoading(true);
+      try {
+        const data = await getCameras();
+        setCameras(data);
+      } catch (err) {
+        if (showLoading) toast.error(t("dashboard.loadCamerasError"));
+      } finally {
+        if (showLoading) setCamerasLoading(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     void loadCameras(true);
@@ -128,7 +126,7 @@ export default function ControlCenterPage() {
   const handleDelete = async (id: string, name: string) => {
     // Optimistic update
     setCameras((prev) => prev.filter((c) => c.id !== id));
-    
+
     try {
       await deleteCamera(id);
       toast.success(t("common.success"));
@@ -153,9 +151,9 @@ export default function ControlCenterPage() {
       toast.success(
         result.flash_active
           ? `${camera.name}: ${t("dashboard.flashActive")}`
-          : `${camera.name}: ${t("dashboard.flashInactive")}`
+          : `${camera.name}: ${t("dashboard.flashInactive")}`,
       );
-      
+
       setCameras((prev) =>
         prev.map((c) =>
           c.id === camera.id ? { ...c, flash_active: result.flash_active } : c,
@@ -196,7 +194,9 @@ export default function ControlCenterPage() {
           return (
             <div className="flex items-center gap-2">
               <StatusDot variant="warning" size="md" />
-              <span className="font-semibold text-amber-500">{t("dashboard.statusUnconfigured")}</span>
+              <span className="font-semibold text-amber-500">
+                {t("dashboard.statusUnconfigured")}
+              </span>
             </div>
           );
         }
@@ -210,7 +210,9 @@ export default function ControlCenterPage() {
                 isOnline ? "text-emerald-400" : "text-zinc-500",
               )}
             >
-              {isOnline ? t("dashboard.statusOnline") : t("dashboard.statusOffline")}
+              {isOnline
+                ? t("dashboard.statusOnline")
+                : t("dashboard.statusOffline")}
             </span>
           </div>
         );
@@ -239,11 +241,10 @@ export default function ControlCenterPage() {
             <Button
               size="sm"
               variant="outline"
-              className={cn(
-                "h-7 text-xs px-2",
-                isDesktop && "cursor-pointer"
-              )}
-              onClick={() => isDesktop && router.push(`/cameras/flash?id=${camera.id}`)}
+              className={cn("h-7 text-xs px-2", isDesktop && "cursor-pointer")}
+              onClick={() =>
+                isDesktop && router.push(`/cameras/flash?id=${camera.id}`)
+              }
               disabled={!isDesktop}
               title={!isDesktop ? t("restricted.descNew") : undefined}
             >
@@ -261,16 +262,20 @@ export default function ControlCenterPage() {
             disabled={isDisabled}
             className={cn(
               "overflow-hidden rounded-full transition-transform",
-              isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"
+              isDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer active:scale-95",
             )}
-            title={isOffline ? t("dashboard.statusOffline") : t("live.toggleFlash")}
+            title={
+              isOffline ? t("dashboard.statusOffline") : t("live.toggleFlash")
+            }
           >
             <div
               className={cn(
                 "relative inline-flex items-center justify-center w-[96px] h-[22px] rounded-full border text-xs font-semibold select-none transition-all duration-300",
-                active 
-                  ? "border-zinc-200/30 bg-zinc-200/15 text-zinc-100 shadow-[0_0_8px_rgba(228,228,231,0.15)]" 
-                  : "border-zinc-800 bg-zinc-950 text-zinc-500 shadow-none"
+                active
+                  ? "border-zinc-200/30 bg-zinc-200/15 text-zinc-100 shadow-[0_0_8px_rgba(228,228,231,0.15)]"
+                  : "border-zinc-800 bg-zinc-950 text-zinc-500 shadow-none",
               )}
             >
               <AnimatePresence mode="popLayout" initial={false}>
@@ -284,7 +289,9 @@ export default function ControlCenterPage() {
                     className="flex items-center gap-1.5"
                   >
                     <Lightbulb className="h-3.5 w-3.5 fill-current -mt-[1px]" />
-                    <span className="leading-none mt-[1px]">{t("dashboard.flashActive")}</span>
+                    <span className="leading-none mt-[1px]">
+                      {t("dashboard.flashActive")}
+                    </span>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -296,7 +303,9 @@ export default function ControlCenterPage() {
                     className="flex items-center gap-1.5"
                   >
                     <LightbulbOff className="h-3.5 w-3.5 -mt-[1px]" />
-                    <span className="leading-none mt-[1px]">{t("dashboard.flashInactive")}</span>
+                    <span className="leading-none mt-[1px]">
+                      {t("dashboard.flashInactive")}
+                    </span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -319,7 +328,9 @@ export default function ControlCenterPage() {
     },
     {
       id: "actions",
-      header: () => <div className="text-right pr-2">{t("dashboard.actionsLabel")}</div>,
+      header: () => (
+        <div className="text-right pr-2">{t("dashboard.actionsLabel")}</div>
+      ),
       cell: ({ row }) => {
         const camera = row.original;
         const status = getCameraStatus(camera);
@@ -346,23 +357,23 @@ export default function ControlCenterPage() {
                   className="cursor-pointer gap-2 font-mono text-xs focus:bg-zinc-900 focus:text-zinc-50"
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Copy ID</span>
+                  <span>{t("dashboard.copyId")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleCopyIP(camera.ip, camera.name)}
                   className="cursor-pointer gap-2 font-mono text-xs focus:bg-zinc-900 focus:text-zinc-50"
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>Copy IP</span>
+                  <span>{t("dashboard.copyIp")}</span>
                 </DropdownMenuItem>
-                
+
                 {!(status === "unconfigured") && (
                   <DropdownMenuItem
                     onClick={() => !isOffline && handleToggleFlash(camera)}
                     disabled={isOffline}
                     className={cn(
                       "cursor-pointer gap-2 text-xs focus:bg-zinc-900 focus:text-zinc-50",
-                      isOffline && "opacity-50 cursor-not-allowed"
+                      isOffline && "opacity-50 cursor-not-allowed",
                     )}
                   >
                     {camera.flash_active ? (
@@ -381,11 +392,15 @@ export default function ControlCenterPage() {
 
                 <DropdownMenuSeparator className="bg-border/60" />
                 <DropdownMenuItem
-                  onClick={() => isDesktop && router.push(`/cameras/flash?id=${camera.id}`)}
+                  onClick={() =>
+                    isDesktop && router.push(`/cameras/flash?id=${camera.id}`)
+                  }
                   disabled={!isDesktop}
                   className={cn(
                     "gap-2 text-xs focus:bg-zinc-900",
-                    !isDesktop ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    !isDesktop
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer",
                   )}
                   title={!isDesktop ? t("restricted.descNew") : undefined}
                 >
@@ -419,26 +434,27 @@ export default function ControlCenterPage() {
       <PageHeader
         title={
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>{language === "pt" ? "Bem-vindo ao" : "Welcome to"}</span>
+            <span>{t("dashboard.welcomeTo")}</span>
             <AuroraText>{t("dashboard.title")}</AuroraText>
           </div>
         }
-        description={language === "pt" ? "Gerencie e monitorize as tuas câmaras." : "Manage and monitor your cameras."}
+        description={t("dashboard.description")}
       />
 
-      {/* Camera Management */}
       <div className="flex flex-col gap-4">
         <DataTable
           columns={columns}
           data={cameras}
           isLoading={camerasLoading}
           filterColumnKey="name"
-          filterPlaceholder={language === "pt" ? "Pesquisar câmara..." : "Search camera..."}
+          filterPlaceholder={t("dashboard.searchPlaceholder")}
           actionButton={
             <Button
               className={cn(
                 "h-9 gap-2 font-medium w-full sm:w-auto",
-                (!isDesktop || camerasLoading) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                !isDesktop || camerasLoading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer",
               )}
               onClick={() => isDesktop && router.push("/cameras/new")}
               disabled={camerasLoading || !isDesktop}

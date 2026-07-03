@@ -14,11 +14,17 @@ interface CameraWizardProps {
   children: React.ReactNode;
 }
 
-export function CameraWizard({ steps, currentStep, children }: CameraWizardProps) {
+export function CameraWizard({
+  steps,
+  currentStep,
+  children,
+}: CameraWizardProps) {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-8">
-      {/* Step indicator */}
-      <nav aria-label="Progress" className="flex items-center justify-center gap-0">
+      <nav
+        aria-label="Progress"
+        className="flex items-center justify-center gap-0"
+      >
         {steps.map((step, i) => {
           const isDone = i < currentStep;
           const isActive = i === currentStep;
@@ -26,7 +32,6 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
 
           return (
             <div key={i} className="flex items-center">
-              {/* Circle */}
               <div className="flex flex-col items-center gap-1.5">
                 <div
                   className={cn(
@@ -34,10 +39,10 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
                     step.skipped
                       ? "border-border bg-muted text-muted-foreground"
                       : isDone
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : isActive
-                      ? "border-primary bg-background text-primary shadow-[0_0_0_4px] shadow-primary/15"
-                      : "border-border bg-background text-muted-foreground"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : isActive
+                          ? "border-primary bg-background text-primary shadow-[0_0_0_4px] shadow-primary/15"
+                          : "border-border bg-background text-muted-foreground",
                   )}
                 >
                   {isDone && !step.skipped ? (
@@ -52,20 +57,19 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
                     isActive
                       ? "text-foreground"
                       : isDone
-                      ? "text-muted-foreground"
-                      : "text-muted-foreground/50"
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground/50",
                   )}
                 >
                   {step.label}
                 </span>
               </div>
 
-              {/* Connector line */}
               {!isLast && (
                 <div
                   className={cn(
                     "mx-1.5 sm:mx-3 mb-5 h-px flex-1 min-w-[20px] sm:min-w-[40px] transition-colors duration-300",
-                    isDone && !step.skipped ? "bg-primary" : "bg-border"
+                    isDone && !step.skipped ? "bg-primary" : "bg-border",
                   )}
                 />
               )}
@@ -74,7 +78,6 @@ export function CameraWizard({ steps, currentStep, children }: CameraWizardProps
         })}
       </nav>
 
-      {/* Step content */}
       <div className="flex flex-col gap-6">{children}</div>
     </div>
   );

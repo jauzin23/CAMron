@@ -73,12 +73,10 @@ export function LoginScreen() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 px-4 overflow-hidden select-none">
-      {/* Magic UI WarpBackground */}
       <WarpBackground className="absolute inset-0 size-full rounded-none border-none p-0 bg-transparent opacity-40 pointer-events-none">
         {null}
       </WarpBackground>
 
-      {/* Language Selector */}
       <div className="absolute top-4 right-4 z-50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -116,7 +114,6 @@ export function LoginScreen() {
         </DropdownMenu>
       </div>
 
-      {/* Card container */}
       <div className="relative z-10 w-full max-w-[360px]">
         <Card className="w-full">
           <CardHeader className="flex flex-col items-center space-y-2 pb-4 pt-6">

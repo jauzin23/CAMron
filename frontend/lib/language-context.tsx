@@ -16,7 +16,9 @@ interface LanguageContextType {
   t: (key: string, variables?: Record<string, string | number>) => string;
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const LanguageContext = createContext<LanguageContextType | undefined>(
+  undefined,
+);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("en");
@@ -43,7 +45,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = lang === "pt" ? "pt-PT" : "en-US";
   };
 
-  const t = (key: string, variables?: Record<string, string | number>): string => {
+  const t = (
+    key: string,
+    variables?: Record<string, string | number>,
+  ): string => {
     const dict = translations[language];
     const parts = key.split(".");
     let current: any = dict;
@@ -71,7 +76,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {/* Pre-render loading state to avoid layout shift */}
       {isLoaded ? children : <div className="invisible">{children}</div>}
     </LanguageContext.Provider>
   );

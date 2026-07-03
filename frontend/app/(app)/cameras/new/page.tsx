@@ -71,11 +71,7 @@ function NewCameraContent() {
       <PageHeader
         eyebrow={t("edit.eyebrow")}
         title={t("dashboard.buttonAddCamera")}
-        description={
-          language === "pt"
-            ? "Regista uma nova câmara ESP32 no sistema."
-            : "Registers a new ESP32 camera in the system."
-        }
+        description={t("wizard.description")}
         actions={
           <Link
             href="/"
@@ -88,10 +84,10 @@ function NewCameraContent() {
       />
 
       <CameraWizard steps={steps} currentStep={currentStep}>
-        {/* ── Step 1: Identity ── */}
+        {/*Step 1*/}
         {currentStep === 0 && <WizardStepIdentity onNext={handleIdentity} />}
 
-        {/* ── Step 2: Firmware decision prompt ── */}
+        {/*Step 2*/}
         {currentStep === 1 && createdCamera && (
           <AnimatePresence mode="wait">
             <motion.div
@@ -102,21 +98,15 @@ function NewCameraContent() {
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="flex flex-col items-center gap-8 py-4 text-center"
             >
-              {/* Prompt text */}
               <div className="flex flex-col gap-2 max-w-sm">
                 <h3 className="text-2xl font-bold tracking-tight text-foreground">
-                  {language === "pt"
-                    ? "Gravar firmware agora?"
-                    : "Flash firmware now?"}
+                  {t("wizard.flashNowTitle")}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {language === "pt"
-                    ? `A câmara "${createdCamera.name}" foi criada com sucesso. Queres gravar o firmware ESP32 agora?`
-                    : `The camera "${createdCamera.name}" was created. Do you want to flash the ESP32 firmware now?`}
+                  {t("wizard.flashNowDesc", { name: createdCamera.name })}
                 </p>
               </div>
 
-              {/* Action buttons */}
               <div className="flex flex-col gap-3 w-full max-w-xs">
                 <Button
                   onClick={handleFlashNow}
@@ -124,7 +114,7 @@ function NewCameraContent() {
                   className="w-full gap-2.5 font-semibold h-11 shadow-md"
                 >
                   <Zap className="h-4 w-4" />
-                  {language === "pt" ? "Gravar Firmware" : "Flash Firmware"}
+                  {t("wizard.flashButton")}
                   <ArrowRight className="h-4 w-4 ml-auto" />
                 </Button>
 
@@ -135,16 +125,14 @@ function NewCameraContent() {
                   className="w-full gap-2 font-medium h-11 text-muted-foreground hover:text-foreground"
                 >
                   <SkipForward className="h-4 w-4" />
-                  {language === "pt"
-                    ? "Configurar mais tarde"
-                    : "Configure later"}
+                  {t("wizard.configureLater")}
                 </Button>
               </div>
             </motion.div>
           </AnimatePresence>
         )}
 
-        {/* ── Step 3: Done ── */}
+        {/*Step 3*/}
         {currentStep === 2 && createdCamera && (
           <WizardStepDone
             cameraName={createdCamera.name}
@@ -164,11 +152,7 @@ export default function NewCameraPage() {
   if (!isDesktop) {
     return (
       <DeviceRestrictedPage
-        title={
-          language === "pt"
-            ? "Adicionar Câmara Restrita"
-            : "Add Camera Restricted"
-        }
+        title={t("restricted.titleNew")}
         description={t("restricted.descNew")}
       />
     );

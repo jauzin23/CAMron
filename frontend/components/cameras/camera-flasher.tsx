@@ -652,9 +652,10 @@ export function CameraFlasher({
         >
           {step === "connect" && (
             <div className="flex flex-col items-center gap-6 w-full animate-fade-in">
-              {/* Step sub-header */}
               <div className="flex flex-col items-center gap-1 w-full">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 1</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Step 1
+                </span>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.connectUsb")}
                 </h2>
@@ -713,9 +714,10 @@ export function CameraFlasher({
               onSubmit={handleStartCompilation}
               className="flex flex-col items-center gap-6 w-full animate-fade-in"
             >
-              {/* Step sub-header */}
               <div className="flex flex-col items-center gap-1 w-full">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 2</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Step 2
+                </span>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.enterWifiDetails")}
                 </h2>
@@ -725,35 +727,38 @@ export function CameraFlasher({
               </div>
 
               <div className="flex flex-col gap-3 w-full max-w-xs text-left">
-                {!camerasLoading && allCameras.filter((c) => c.id !== cameraId).length > 0 && (
-                  <div className="flex flex-col gap-1.5 mb-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground pl-0.5">
-                      {t("flasher.importCredentials")}
-                    </Label>
-                    <Select
-                      onValueChange={(val) => {
-                        const selected = allCameras.find((c) => c.id === val);
-                        if (selected) {
-                          setWifiSsid(selected.wifi_ssid || "");
-                          setWifiPassword(selected.wifi_pass || "");
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue placeholder={t("flasher.selectCameraPlaceholder")} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border-border text-foreground">
-                        {allCameras
-                          .filter((c) => c.id !== cameraId)
-                          .map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name} ({c.wifi_ssid})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {!camerasLoading &&
+                  allCameras.filter((c) => c.id !== cameraId).length > 0 && (
+                    <div className="flex flex-col gap-1.5 mb-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground pl-0.5">
+                        {t("flasher.importCredentials")}
+                      </Label>
+                      <Select
+                        onValueChange={(val) => {
+                          const selected = allCameras.find((c) => c.id === val);
+                          if (selected) {
+                            setWifiSsid(selected.wifi_ssid || "");
+                            setWifiPassword(selected.wifi_pass || "");
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10 w-full">
+                          <SelectValue
+                            placeholder={t("flasher.selectCameraPlaceholder")}
+                          />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border-border text-foreground">
+                          {allCameras
+                            .filter((c) => c.id !== cameraId)
+                            .map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name} ({c.wifi_ssid})
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                 <div className="flex flex-col gap-1.5">
                   <Label
@@ -863,9 +868,10 @@ export function CameraFlasher({
 
           {step === "compiling" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
-              {/* Step sub-header */}
               <div className="flex flex-col items-center gap-1 w-full">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 3</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Step 3
+                </span>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.compilingSoftware")}
                 </h2>
@@ -878,9 +884,10 @@ export function CameraFlasher({
 
           {step === "flashing" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
-              {/* Step sub-header */}
               <div className="flex flex-col items-center gap-1 w-full">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 4</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Step 4
+                </span>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.stepFlash")}
                 </h2>
@@ -908,9 +915,10 @@ export function CameraFlasher({
 
           {step === "verifying" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
-              {/* Step sub-header */}
               <div className="flex flex-col items-center gap-1 w-full">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Step 5</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Step 5
+                </span>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.stepVerify")}
                 </h2>
@@ -950,7 +958,6 @@ export function CameraFlasher({
           {step === "failed" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
               <AlertCircle className="h-14 w-14 text-rose-500" />
-              {/* Step sub-header */}
               <div className="flex flex-col items-center gap-1 w-full">
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("common.error")}
@@ -984,7 +991,6 @@ export function CameraFlasher({
           {step === "success" && (
             <div className="flex flex-col items-center gap-6 w-full py-4 animate-fade-in">
               <CheckCircle className="h-14 w-14 text-emerald-500" />
-              {/* Step sub-header */}
               <div className="flex flex-col items-center gap-1 w-full">
                 <h2 className="text-3xl font-bold tracking-tight text-foreground text-balance">
                   {t("flasher.setupDone")}
