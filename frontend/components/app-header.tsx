@@ -46,7 +46,7 @@ function LanguageSelector() {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <div className="no-drag">
+    <div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -58,15 +58,24 @@ function LanguageSelector() {
             <span>{language === "en" ? "EN" : "PT"}</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[140px]">
+        <DropdownMenuContent
+          align="end"
+          className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[140px]"
+        >
           <DropdownMenuRadioGroup
             value={language}
             onValueChange={(val) => setLanguage(val as Language)}
           >
-            <DropdownMenuRadioItem value="en" className="text-xs cursor-pointer">
+            <DropdownMenuRadioItem
+              value="en"
+              className="text-xs cursor-pointer"
+            >
               English
             </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="pt" className="text-xs cursor-pointer">
+            <DropdownMenuRadioItem
+              value="pt"
+              className="text-xs cursor-pointer"
+            >
               Português
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
@@ -80,10 +89,46 @@ export function AppHeader() {
   const pathname = usePathname();
   const [timeString, setTimeString] = useState<string>("");
   const { t } = useLanguage();
+  const [cameraCount, setCameraCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+    if (!sseToken) return;
+
+    const eventSource = new EventSource(
+      `${backendUrl}/api/cameras/events?token=${encodeURIComponent(sseToken)}`,
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const dbCams = JSON.parse(event.data);
+        if (Array.isArray(dbCams)) {
+          setCameraCount(dbCams.length);
+        }
+      } catch (err) {
+        console.error("Failed to parse cameras SSE data in header:", err);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
   const NAV = [
-    { href: "/", label: t("header.controlCenter"), icon: LayoutDashboard },
-    { href: "/live", label: t("header.live"), icon: Video },
+    {
+      href: "/",
+      label: t("header.controlCenter"),
+      icon: LayoutDashboard,
+      disabled: false,
+    },
+    {
+      href: "/live",
+      label: t("header.live"),
+      icon: Video,
+      disabled: cameraCount === 0,
+    },
   ];
 
   useEffect(() => {
@@ -100,22 +145,18 @@ export function AppHeader() {
   }, []);
 
   return (
-    <header
-      className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60 select-none"
-      style={{ "--wails-draggable": "drag" } as any}
-    >
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60 select-none">
       <div className="mx-auto flex h-14 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 no-drag">
-            <div className="flex h-9 w-9 items-center justify-center overflow-hidden text-foreground">
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden text-foreground">
               <LogoSvg viewBox="0 0 1500 1500" className="h-12 w-12 shrink-0" />
             </div>
           </Link>
 
           <Separator orientation="vertical" className="hidden h-5 sm:block" />
 
-          {/* Desktop Navigation */}
-          <nav className="hidden items-center gap-1 sm:flex no-drag">
+          <nav className="hidden items-center gap-1 sm:flex">
             {NAV.map((item) => {
               const active =
                 item.href === "/"
@@ -124,12 +165,14 @@ export function AppHeader() {
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.disabled ? "#" : item.href}
                   className={cn(
                     "relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                     active
                       ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground",
+                    item.disabled &&
+                      "opacity-50 pointer-events-none cursor-not-allowed",
                   )}
                 >
                   {item.label}
@@ -145,8 +188,7 @@ export function AppHeader() {
           </nav>
         </div>
 
-        {/* Mobile Navigation & Language Selector */}
-        <div className="flex items-center gap-2 sm:hidden no-drag">
+        <div className="flex items-center gap-2 sm:hidden">
           <LanguageSelector />
           <Sheet>
             <SheetTrigger asChild>
@@ -183,15 +225,22 @@ export function AppHeader() {
                   return (
                     <SheetClose asChild key={item.href}>
                       <Link
-                        href={item.href}
+                        href={item.disabled ? "#" : item.href}
                         className={cn(
                           "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all border",
                           active
                             ? "bg-zinc-900 text-zinc-100 border-zinc-800/80 shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
-                            : "text-zinc-400 border-transparent hover:bg-zinc-900/40 hover:text-zinc-200 hover:border-zinc-800/40"
+                            : "text-zinc-400 border-transparent hover:bg-zinc-900/40 hover:text-zinc-200 hover:border-zinc-800/40",
+                          item.disabled &&
+                            "opacity-50 pointer-events-none cursor-not-allowed",
                         )}
                       >
-                        <Icon className={cn("h-4.5 w-4.5", active ? "text-primary" : "text-zinc-500")} />
+                        <Icon
+                          className={cn(
+                            "h-4.5 w-4.5",
+                            active ? "text-primary" : "text-zinc-500",
+                          )}
+                        />
                         <span>{item.label}</span>
                       </Link>
                     </SheetClose>
@@ -202,7 +251,6 @@ export function AppHeader() {
           </Sheet>
         </div>
 
-        {/* Desktop time display & Language Selector */}
         <div className="hidden sm:flex items-center gap-4">
           <LanguageSelector />
           {timeString ? (

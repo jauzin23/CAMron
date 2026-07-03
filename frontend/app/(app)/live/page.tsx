@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -37,7 +38,6 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-
 
 interface Camera {
   id: string;
@@ -150,7 +150,10 @@ const PRESETS: Record<string, LayoutNode> = {
 };
 
 // Helper to fill empty slots in a layout with real cameras sequentially
-function fillLayoutWithRealCams(node: LayoutNode, cameras: Camera[]): LayoutNode {
+function fillLayoutWithRealCams(
+  node: LayoutNode,
+  cameras: Camera[],
+): LayoutNode {
   let cameraIndex = 0;
   function traverse(n: LayoutNode): LayoutNode {
     if (n.type === "leaf") {
@@ -255,6 +258,7 @@ function findCameraId(node: LayoutNode, targetId: string): string | null {
 }
 
 export default function LivePage() {
+  const router = useRouter();
   const { t, language } = useLanguage();
   const [layout, setLayout] = useState<LayoutNode>(PRESETS["2x2"]);
   const [layoutType, setLayoutType] = useState<string>("2x2");
@@ -284,10 +288,15 @@ export default function LivePage() {
       try {
         const dbCams = JSON.parse(event.data);
         if (Array.isArray(dbCams)) {
+          if (dbCams.length === 0) {
+            router.push("/");
+            return;
+          }
           const mapped: Camera[] = dbCams.map((c: any) => ({
             id: c.id,
             name: c.name,
-            flash_active: c.flash_active === true || (c.flash_active as any) === 1,
+            flash_active:
+              c.flash_active === true || (c.flash_active as any) === 1,
             last_seen: c.last_seen,
           }));
           setRealCameras(mapped);
@@ -323,24 +332,24 @@ export default function LivePage() {
     // Optimistic UI update
     setRealCameras((prev) =>
       prev.map((c) =>
-        c.id === id ? { ...c, flash_active: !previousState } : c
-      )
+        c.id === id ? { ...c, flash_active: !previousState } : c,
+      ),
     );
 
     try {
       const res = await toggleFlash(id);
       setRealCameras((prev) =>
         prev.map((c) =>
-          c.id === id ? { ...c, flash_active: res.flash_active } : c
-        )
+          c.id === id ? { ...c, flash_active: res.flash_active } : c,
+        ),
       );
     } catch (err) {
       console.error("Failed to toggle flash", err);
       // Revert state on error
       setRealCameras((prev) =>
         prev.map((c) =>
-          c.id === id ? { ...c, flash_active: previousState } : c
-        )
+          c.id === id ? { ...c, flash_active: previousState } : c,
+        ),
       );
     }
   };
@@ -473,11 +482,10 @@ export default function LivePage() {
           <div className="flex flex-row items-center justify-between shrink-0 px-2 pt-1 gap-2">
             <div>
               <h1 className="text-sm sm:text-base font-semibold tracking-tight text-white">
-                {language === "pt" ? "Mosaico" : "Mosaic"}
+                {t("live.mosaic")}
               </h1>
             </div>
 
-            {/* Preset selectors and filter controls */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-0.5 bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg shrink-0">
                 {(["1x1", "2x2", "3x3", "1+3"] as const).map((preset) => (
@@ -505,14 +513,16 @@ export default function LivePage() {
                     className="h-6 text-[10px] gap-1 px-2 border-zinc-800 text-zinc-400 hover:text-white bg-zinc-900 capitalize shrink-0"
                   >
                     <Eye className="h-3 w-3" />
-                    <span className="hidden sm:inline">{language === "pt" ? "Visual:" : "Visual:"}</span>{" "}
+                    <span className="hidden sm:inline">
+                      {t("live.visualLabel")}
+                    </span>{" "}
                     {effects.colorMode === "normal"
-                      ? "Normal"
+                      ? t("live.colorModeNormal")
                       : effects.colorMode === "night-vision"
-                      ? (language === "pt" ? "Visão Noturna" : "Night Vision")
-                      : effects.colorMode === "amber"
-                      ? (language === "pt" ? "Âmbar" : "Amber")
-                      : (language === "pt" ? "Térmico" : "Thermal")}
+                        ? t("live.colorModeNightVision")
+                        : effects.colorMode === "amber"
+                          ? t("live.colorModeAmber")
+                          : t("live.colorModeThermal")}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -536,7 +546,7 @@ export default function LivePage() {
                       }))
                     }
                   >
-                    {language === "pt" ? "Visão Noturna" : "Night Vision"}
+                    {t("live.colorModeNightVision")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="hover:bg-zinc-900 focus:bg-zinc-900"
@@ -544,7 +554,7 @@ export default function LivePage() {
                       setEffects((prev) => ({ ...prev, colorMode: "amber" }))
                     }
                   >
-                    {language === "pt" ? "Âmbar" : "Amber"}
+                    {t("live.colorModeAmber")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="hover:bg-zinc-900 focus:bg-zinc-900"
@@ -552,14 +562,13 @@ export default function LivePage() {
                       setEffects((prev) => ({ ...prev, colorMode: "thermal" }))
                     }
                   >
-                    {language === "pt" ? "Térmico" : "Thermal"}
+                    {t("live.colorModeThermal")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
 
-          {/* Main Grid Viewport Wrapper */}
           <div className="flex-1 overflow-hidden min-h-0 relative shadow-2xl">
             {fullscreenId ? (
               <div className="absolute inset-0 z-40 bg-zinc-950 p-1 h-full w-full">
@@ -649,14 +658,13 @@ function CameraCell({
 
   if (!cameraId) {
     return (
-      <div 
+      <div
         tabIndex={0}
         onFocus={() => setShowControls(true)}
         onBlur={handleBlur}
         onClick={() => setShowControls((prev) => !prev)}
         className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center group transition-all duration-300 relative border border-zinc-900/50 hover:border-zinc-800/80 select-none animate-fade-in outline-none"
       >
-        {/* Stylized background matrix lines */}
         <div
           className="absolute inset-0 opacity-[0.02] pointer-events-none"
           style={{
@@ -666,7 +674,7 @@ function CameraCell({
           }}
         />
 
-        <div 
+        <div
           onClick={(e) => e.stopPropagation()}
           className="flex flex-col items-center gap-3 z-10 max-w-[320px]"
         >
@@ -675,12 +683,10 @@ function CameraCell({
           </div>
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-zinc-300">
-                {language === "pt" ? "Sem Sinal de Vídeo" : "No Video Signal"}
-              </h3>
-              <p className="text-xs text-zinc-500">
-                {t("live.chooseFeed")}
-              </p>
-            </div>
+              {t("live.noVideoSignal")}
+            </h3>
+            <p className="text-xs text-zinc-500">{t("live.chooseFeed")}</p>
+          </div>
 
           <DropdownMenu onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
@@ -689,7 +695,7 @@ function CameraCell({
                 variant="outline"
                 className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:text-white text-xs h-8 transition-colors"
               >
-                {language === "pt" ? "Mapear Feed" : "Map Feed"}
+                {t("live.mapFeed")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-zinc-950 border-zinc-850 text-white w-56">
@@ -706,12 +712,13 @@ function CameraCell({
           </DropdownMenu>
         </div>
 
-        {/* Small split overlay controls for empty node */}
-        <div 
+        <div
           onClick={(e) => e.stopPropagation()}
           className={cn(
             "absolute bottom-2 right-2 transition-all duration-300 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-xs p-1 rounded-md border border-zinc-800",
-            (showControls || isDropdownOpen) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            showControls || isDropdownOpen
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100",
           )}
         >
           <Button
@@ -719,7 +726,7 @@ function CameraCell({
             variant="ghost"
             className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
             onClick={() => onSplit("horizontal")}
-            title={language === "pt" ? "Dividir Horizontal" : "Split Horizontally"}
+            title={t("live.splitHorizontally")}
           >
             <Columns className="h-3.5 w-3.5" />
           </Button>
@@ -728,7 +735,7 @@ function CameraCell({
             variant="ghost"
             className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
             onClick={() => onSplit("vertical")}
-            title={language === "pt" ? "Dividir Vertical" : "Split Vertically"}
+            title={t("live.splitVertically")}
           >
             <Rows className="h-3.5 w-3.5" />
           </Button>
@@ -738,7 +745,7 @@ function CameraCell({
               variant="ghost"
               className="h-6 w-6 hover:bg-zinc-800 rounded text-red-400 hover:text-red-300 hover:bg-red-950/20 transition-colors"
               onClick={onDelete}
-              title={language === "pt" ? "Remover Painel" : "Remove Panel"}
+              title={t("live.removePanel")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -751,21 +758,19 @@ function CameraCell({
   const isVisible = showControls || isDropdownOpen;
 
   return (
-    <div 
+    <div
       tabIndex={0}
       onFocus={() => setShowControls(true)}
       onBlur={handleBlur}
       onClick={() => setShowControls((prev) => !prev)}
       className="relative w-full h-full overflow-hidden bg-black group border border-zinc-900 select-none animate-fade-in outline-none"
     >
-      {/* Video Content / Placeholder */}
       <div
         className="w-full h-full flex items-center justify-center bg-black relative overflow-hidden transition-all"
         style={{ filter: filterStyle }}
       >
         {!camera ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 p-6 text-center group transition-all duration-300">
-            {/* Stylized background matrix lines */}
             <div
               className="absolute inset-0 opacity-[0.02] pointer-events-none"
               style={{
@@ -775,7 +780,7 @@ function CameraCell({
               }}
             />
 
-            <div 
+            <div
               onClick={(e) => e.stopPropagation()}
               className="flex flex-col items-center gap-3 z-10 max-w-[320px]"
             >
@@ -798,7 +803,7 @@ function CameraCell({
                   className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:text-white text-xs h-8 transition-colors"
                   onClick={() => onSelectCamera(null)}
                 >
-                  {language === "pt" ? "Limpar Painel" : "Clear Panel"}
+                  {t("live.clearPanel")}
                 </Button>
 
                 <DropdownMenu onOpenChange={setIsDropdownOpen}>
@@ -808,7 +813,7 @@ function CameraCell({
                       variant="default"
                       className="bg-white text-black hover:bg-zinc-200 text-xs h-8 transition-colors"
                     >
-                      {language === "pt" ? "Mapear Feed" : "Map Feed"}
+                      {t("live.mapFeed")}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-zinc-950 border-zinc-850 text-white w-56">
@@ -826,12 +831,13 @@ function CameraCell({
               </div>
             </div>
 
-            {/* Small split overlay controls for empty node */}
-            <div 
+            <div
               onClick={(e) => e.stopPropagation()}
               className={cn(
                 "absolute bottom-2 right-2 transition-all duration-300 flex items-center gap-1 bg-zinc-900/80 backdrop-blur-xs p-1 rounded-md border border-zinc-800",
-                (showControls || isDropdownOpen) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                showControls || isDropdownOpen
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100",
               )}
             >
               <Button
@@ -839,7 +845,7 @@ function CameraCell({
                 variant="ghost"
                 className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
                 onClick={() => onSplit("horizontal")}
-                title={language === "pt" ? "Dividir Horizontal" : "Split Horizontally"}
+                title={t("live.splitHorizontally")}
               >
                 <Columns className="h-3.5 w-3.5" />
               </Button>
@@ -848,7 +854,7 @@ function CameraCell({
                 variant="ghost"
                 className="h-6 w-6 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
                 onClick={() => onSplit("vertical")}
-                title={language === "pt" ? "Dividir Vertical" : "Split Vertically"}
+                title={t("live.splitVertically")}
               >
                 <Rows className="h-3.5 w-3.5" />
               </Button>
@@ -858,7 +864,7 @@ function CameraCell({
                   variant="ghost"
                   className="h-6 w-6 hover:bg-zinc-800 rounded text-red-400 hover:text-red-300 hover:bg-red-950/20 transition-colors"
                   onClick={onDelete}
-                  title={language === "pt" ? "Remover Painel" : "Remove Panel"}
+                  title={t("live.removePanel")}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -891,7 +897,7 @@ function CameraCell({
             <div className="z-10 flex flex-col items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
               <span className="text-[10px] tracking-widest text-zinc-500/80 uppercase font-mono">
-                {language === "pt" ? "Carregar sinal..." : "Loading feed..."}
+                {t("common.loading")}
               </span>
             </div>
           </div>
@@ -915,25 +921,23 @@ function CameraCell({
               }}
             >
               <RefreshCw className="h-3 w-3 mr-1" />
-              {language === "pt" ? "Tentar Novamente" : "Try Again"}
+              {t("common.tryAgain")}
             </Button>
           </div>
         )}
       </div>
 
-      {/* Top Left - Camera Name info (Clean glass pill style) */}
       {camera && isLive && (
         <div className="absolute top-3 left-3 bg-zinc-950/70 backdrop-blur-md text-zinc-200 border border-zinc-800/40 text-[10px] px-2.5 py-1 rounded-md font-mono tracking-wide uppercase select-none z-20">
           {camera.name.toUpperCase()}
         </div>
       )}
 
-      {/* Hover Toolbar Controls Overlay - Docked in the bottom-right, matching the empty cell toolbar style */}
-      <div 
+      <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
           "absolute bottom-2 right-2 z-30 transition-all duration-300 ease-out flex items-center gap-1 bg-zinc-900/90 backdrop-blur-xs p-1 rounded-md border border-zinc-800 shadow-md",
-          isVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          isVisible ? "opacity-100" : "opacity-0 group-hover:opacity-100",
         )}
       >
         <DropdownMenu onOpenChange={setIsDropdownOpen}>
@@ -943,7 +947,7 @@ function CameraCell({
               variant="ghost"
               className="h-6 text-[10px] px-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors rounded"
             >
-              {language === "pt" ? "Mudar Feed" : "Change Feed"}
+              {t("live.changeFeed")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-zinc-950 border border-zinc-800 text-white w-52 rounded-md">
@@ -960,7 +964,7 @@ function CameraCell({
               className="hover:bg-zinc-900 focus:bg-zinc-900 text-xs py-2 cursor-pointer text-red-400 focus:text-red-400 transition-colors"
               onClick={() => onSelectCamera(null)}
             >
-              {language === "pt" ? "Desconectar Canal" : "Disconnect Feed"}
+              {t("live.disconnectFeed")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -971,14 +975,21 @@ function CameraCell({
             <Button
               size="icon"
               variant="ghost"
-              disabled={!camera.last_seen || (Date.now() - new Date(camera.last_seen).getTime()) / 1000 >= 10}
+              disabled={
+                !camera.last_seen ||
+                (Date.now() - new Date(camera.last_seen).getTime()) / 1000 >= 10
+              }
               className={`h-6 w-6 rounded transition-colors ${
                 camera.flash_active
                   ? "text-yellow-400 hover:text-yellow-300 hover:bg-yellow-950/20"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               } disabled:opacity-50 disabled:cursor-not-allowed`}
               onClick={() => onToggleFlash(camera.id)}
-              title={camera.flash_active ? (language === "pt" ? "Desligar Lanterna" : "Flashlight Off") : (language === "pt" ? "Ligar Lanterna" : "Flashlight On")}
+              title={
+                camera.flash_active
+                  ? t("live.flashlightOff")
+                  : t("live.flashlightOn")
+              }
             >
               <Flashlight className="h-3.5 w-3.5" />
             </Button>
@@ -992,7 +1003,7 @@ function CameraCell({
           variant="ghost"
           className="h-6 w-6 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
           onClick={() => onSplit("horizontal")}
-          title={language === "pt" ? "Dividir Horizontal" : "Split Horizontally"}
+          title={t("live.splitHorizontally")}
         >
           <Columns className="h-3.5 w-3.5" />
         </Button>
@@ -1002,7 +1013,7 @@ function CameraCell({
           variant="ghost"
           className="h-6 w-6 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
           onClick={() => onSplit("vertical")}
-          title={language === "pt" ? "Dividir Vertical" : "Split Vertically"}
+          title={t("live.splitVertically")}
         >
           <Rows className="h-3.5 w-3.5" />
         </Button>
@@ -1012,7 +1023,11 @@ function CameraCell({
           variant="ghost"
           className="h-6 w-6 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
           onClick={onToggleFullscreen}
-          title={isFullscreen ? (language === "pt" ? "Restaurar" : "Restore") : (language === "pt" ? "Maximizar" : "Maximize")}
+          title={
+            isFullscreen
+              ? t("live.restore")
+              : t("live.maximize")
+          }
         >
           {isFullscreen ? (
             <Minimize2 className="h-3.5 w-3.5" />
@@ -1029,7 +1044,7 @@ function CameraCell({
               variant="ghost"
               className="h-6 w-6 text-red-400 hover:text-red-300 hover:bg-red-950/20 rounded transition-colors"
               onClick={onDelete}
-              title={language === "pt" ? "Eliminar Painel" : "Remove Panel"}
+              title={t("live.removePanel")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
