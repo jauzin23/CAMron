@@ -47,7 +47,6 @@ jobs:
     env:
       APP_PIN: "1234"
       JWT_SECRET: "ci-test-secret-long-enough-for-validation-checks"
-      CAMERA_BEARER_TOKEN: "ci-test-camera-bearer-token"
       JWT_EXPIRY: "15m"
       SKIP_RATE_LIMIT: "true"
     steps:

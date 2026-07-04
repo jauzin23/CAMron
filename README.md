@@ -147,14 +147,7 @@ Just want to run CAMron? Follow the steps below using our pre-built Docker image
 mkdir camron && cd camron
 ```
 
-### 2. Download the Nginx configuration
-
-```bash
-# On Linux / macOS / Git Bash / PowerShell:
-curl -L -O https://raw.githubusercontent.com/jauzin23/CAMron/main/nginx.conf
-```
-
-### 3. Create the Docker Compose file
+### 2. Create the Docker Compose file
 
 Create a file named `docker-compose.yml` in that directory and paste the following:
 
@@ -164,8 +157,9 @@ services:
     image: nginx:alpine
     ports:
       - "${FRONTEND_PORT:-3005}:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/conf.d/default.conf
     depends_on:
       - frontend
       - backend
@@ -175,9 +169,8 @@ services:
     image: ghcr.io/jauzin23/camron-backend:latest
     environment:
       - PORT=3000
-      - CAMERA_BEARER_TOKEN=${CAMERA_BEARER_TOKEN:-your_bearer_token_here}
+      - CAMERA_BEARER_TOKEN=${CAMERA_BEARER_TOKEN:-unused_legacy_token}
       - HOST_IP=${HOST_IP:-your_computer_local_ip_here}
-      - ARDUINO_CLI_PATH=/usr/local/bin/arduino-cli
       - PUBLIC_PORT=${FRONTEND_PORT:-3005}
       - APP_PIN=${APP_PIN:-1234}
       - JWT_SECRET=${JWT_SECRET:-some_random_secret_key_here}
@@ -193,22 +186,63 @@ services:
       - backend
     restart: unless-stopped
 
+configs:
+  nginx_config:
+    content: |
+      server {
+          listen 80;
+          server_name localhost;
+
+          # Proxy API requests to the backend
+          location /api/ {
+              proxy_pass http://backend:3000/api/;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $$http_upgrade;
+              proxy_set_header Connection 'upgrade';
+              proxy_set_header Host $$host;
+              proxy_cache_bypass $$http_upgrade;
+              client_max_body_size 50M;
+          }
+
+          # Proxy video stream requests to backend
+          location /stream {
+              proxy_pass http://backend:3000/stream;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $$http_upgrade;
+              proxy_set_header Connection 'upgrade';
+              proxy_set_header Host $$host;
+              proxy_buffering off;
+              proxy_cache off;
+              client_max_body_size 0;
+          }
+
+          # Proxy the rest of the requests to Next.js
+          location / {
+              proxy_pass http://frontend:3005/;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $$http_upgrade;
+              proxy_set_header Connection 'upgrade';
+              proxy_set_header Host $$host;
+              proxy_cache_bypass $$http_upgrade;
+          }
+      }
+
 volumes:
   backend-data:
   arduino-core-data:
 ```
 
-### 4. Start the application
+### 3. Start the application
 
 Set the values in a `.env` file (see [Configuration Variables](#configuration-variables) below), or define them directly in the `docker-compose.yml` environment section.
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 > **Note:** The first time you run this command, the backend container will automatically download and install the ESP32 core into a persistent volume. This initial setup takes **5-10 minutes**, but subsequent container restarts and app builds will start instantly.
 
-### 5. Open the web dashboard
+### 4. Open the web dashboard
 
 Navigate to `http://localhost:3005` in Chrome or Edge.
 
@@ -219,7 +253,6 @@ Create a `.env` file in the same directory if you want to customize your install
 | Name                  | Required? | Description                                                      | Example         |
 | --------------------- | --------- | ---------------------------------------------------------------- | --------------- |
 | `FRONTEND_PORT`       | No        | Public port for the Nginx gateway (accessible by browsers).      | `3005`          |
-| `CAMERA_BEARER_TOKEN` | Yes\*     | Global bearer token shared with firmware for API authentication. | `fd70b9...`     |
 | `HOST_IP`             | Yes\*     | Local LAN IP of the host machine (where backend is running).     | `192.168.1.100` |
 | `APP_PIN`             | Yes\*     | 4-digit security PIN to access the dashboard.                    | `1234`          |
 | `JWT_SECRET`          | Yes\*     | Secret key used for signing session JWT tokens.                  | `secret_key`    |

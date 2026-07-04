@@ -2,30 +2,7 @@
 
 const jwt = require("jsonwebtoken");
 
-const CAMERA_BEARER_TOKEN = process.env.CAMERA_BEARER_TOKEN;
 const JWT_SECRET = process.env.JWT_SECRET;
-
-/**
- * Middleware: verifies the ESP32 camera Bearer token.
- * Used exclusively for device-facing endpoints: /api/cameras/register,
- * /api/confirm-flash, and /stream (internal camera requests).
- * Each camera uses its own unique api_key as the Bearer token.
- * Returns true if authorized, false if not (response already sent).
- */
-function verifyBearer(req, res) {
-  const authHeader = req.headers["authorization"] || "";
-  let token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
-
-  if (!token && req.query.token) {
-    token = req.query.token;
-  }
-
-  if (!token || token !== CAMERA_BEARER_TOKEN) {
-    res.status(401).json({ error: "Unauthorized" });
-    return false;
-  }
-  return true;
-}
 
 /**
  * Middleware: verifies a short-lived JWT session token issued by POST /api/auth/login.
@@ -60,4 +37,4 @@ function verifySessionJWT(req, res, next) {
   }
 }
 
-module.exports = { verifyBearer, verifySessionJWT };
+module.exports = { verifySessionJWT };

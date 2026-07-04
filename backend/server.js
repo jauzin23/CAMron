@@ -19,19 +19,9 @@ const { verifySessionJWT } = require("./middleware/auth");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CAMERA_BEARER_TOKEN = process.env.CAMERA_BEARER_TOKEN;
 const APP_PIN = process.env.APP_PIN;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (
-  !CAMERA_BEARER_TOKEN ||
-  CAMERA_BEARER_TOKEN === "REPLACE_WITH_YOUR_CAMERA_TOKEN"
-) {
-  console.error(
-    "ERROR: CAMERA_BEARER_TOKEN is not set in .env - refusing to start.",
-  );
-  process.exit(1);
-}
 if (!APP_PIN || !/^\d{4}$/.test(APP_PIN)) {
   console.error(
     "ERROR: APP_PIN must be a 4-digit numeric PIN in .env - refusing to start.",

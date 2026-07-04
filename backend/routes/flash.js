@@ -13,7 +13,9 @@ const router = express.Router();
 
 const ARDUINO_CLI_PATH =
   process.env.ARDUINO_CLI_PATH ||
-  "C:\\Users\\jaamj\\AppData\\Local\\Programs\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe";
+  (process.platform === "win32"
+    ? "C:\\Users\\jaamj\\AppData\\Local\\Programs\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe"
+    : "arduino-cli");
 
 // In-memory store for compiler states and confirmations
 const compilations = {};
