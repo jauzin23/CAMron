@@ -65,6 +65,8 @@ export const en = {
     selectPort: "Select Serial Port",
     browserNotSupported:
       "Your browser does not support the Web Serial API. Please use Chrome or Edge.",
+    insecureContext:
+      "Web Serial requires HTTPS or localhost. Since you are accessing the app over HTTP, the browser blocked access. Please run/access the app on localhost, or configure SSL/HTTPS.",
     missingWifi: "Please fill in the wifi and Password.",
     compiling: "Compiling firmware...",
     writing: "Writing to camera...",

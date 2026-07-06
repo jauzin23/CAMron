@@ -65,6 +65,8 @@ export const pt = {
     selectPort: "Selecione a Porta Série",
     browserNotSupported:
       "O seu navegador não suporta a Web Serial API. Use o Chrome ou Edge.",
+    insecureContext:
+      "A Web Serial API requer HTTPS ou localhost. Como está a aceder via HTTP, o navegador bloqueou o acesso. Por favor, aceda a partir de localhost ou configure SSL/HTTPS.",
     missingWifi: "Por favor, preencha o wifi e a Palavra-passe.",
     compiling: "A compilar firmware...",
     writing: "A instalar...",

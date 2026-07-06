@@ -39,10 +39,9 @@
   - [Architecture](#architecture)
   - [Getting Started](#getting-started)
     - [1. Create a project directory](#1-create-a-project-directory)
-    - [2. Download the Nginx configuration](#2-download-the-nginx-configuration)
-    - [3. Create the Docker Compose file](#3-create-the-docker-compose-file)
-    - [4. Start the application](#4-start-the-application)
-    - [5. Open the web dashboard](#5-open-the-web-dashboard)
+    - [2. Create the Docker Compose file](#2-create-the-docker-compose-file)
+    - [3. Start the application](#3-start-the-application)
+    - [4. Open the web dashboard](#4-open-the-web-dashboard)
     - [Configuration Variables](#configuration-variables)
   - [Flashing Guide](#flashing-guide)
     - [Hardware you'll need](#hardware-youll-need)
@@ -100,8 +99,13 @@ _Note: Other boards are not officially supported (currently). I dont have them a
 
 ## Browser Compatibility
 
-Flashing relies on the **Web Serial API**, which requires a compatible browser.
-This feature has been tested on Google Chrome, Microsoft Edge and Opera (windows versions).
+Flashing relies on the **Web Serial API**, which requires a compatible browser and a **Secure Context** (HTTPS or `localhost`).
+
+- **Local Host:** If you run and access CAMron on the same machine (e.g. at `http://localhost:3005`), Web Serial works out of the box.
+- **Remote Host / NAS:** If you host CAMron on a separate machine (like a NAS) and access it via a local IP (e.g. `http://192.168.1.100:3005`), modern browsers will block the Web Serial API. To flash in this scenario, you can:
+  1. **Temporary Local Access:** Temporarily run CAMron locally on your flashing computer (your laptop/desktop) just to perform the initial flash, then access the dashboard on the NAS.
+  2. **Enable HTTPS:** Place CAMron behind a reverse proxy (like Caddy, Nginx, or Traefik) with SSL/HTTPS enabled.
+  3. **Browser Flag (Workaround):** Access `chrome://flags/#unsafely-treat-insecure-origin-as-secure` in Chrome/Edge, add your CAMron URL (e.g., `http://192.168.1.100:3005`), enable the flag, and restart the browser.
 
 ---
 
@@ -250,13 +254,13 @@ Navigate to `http://localhost:3005` in Chrome or Edge.
 
 Create a `.env` file in the same directory if you want to customize your installation:
 
-| Name                  | Required? | Description                                                      | Example         |
-| --------------------- | --------- | ---------------------------------------------------------------- | --------------- |
-| `FRONTEND_PORT`       | No        | Public port for the Nginx gateway (accessible by browsers).      | `3005`          |
-| `HOST_IP`             | Yes\*     | Local LAN IP of the host machine (where backend is running).     | `192.168.1.100` |
-| `APP_PIN`             | Yes\*     | 4-digit security PIN to access the dashboard.                    | `1234`          |
-| `JWT_SECRET`          | Yes\*     | Secret key used for signing session JWT tokens.                  | `secret_key`    |
-| `JWT_EXPIRY`          | No        | JWT token expiration time (e.g., 15m, 1h, 1d).                   | `15m`           |
+| Name            | Required? | Description                                                  | Example         |
+| --------------- | --------- | ------------------------------------------------------------ | --------------- |
+| `FRONTEND_PORT` | No        | Public port for the Nginx gateway (accessible by browsers).  | `3005`          |
+| `HOST_IP`       | Yes\*     | Local LAN IP of the host machine (where backend is running). | `192.168.1.100` |
+| `APP_PIN`       | Yes\*     | 4-digit security PIN to access the dashboard.                | `1234`          |
+| `JWT_SECRET`    | Yes\*     | Secret key used for signing session JWT tokens.              | `secret_key`    |
+| `JWT_EXPIRY`    | No        | JWT token expiration time (e.g., 15m, 1h, 1d).               | `15m`           |
 
 _\*If not defined in a `.env` file, replace these placeholder values directly in the `docker-compose.yml` environment section._
 

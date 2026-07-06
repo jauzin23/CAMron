@@ -104,6 +104,7 @@ export function CameraFlasher({
 
   const [loading, setLoading] = useState<boolean>(false);
   const [serialSupported, setSerialSupported] = useState<boolean>(false);
+  const [isSecure, setIsSecure] = useState<boolean>(true);
   const [countdown, setCountdown] = useState<number>(5);
 
   const [port, setPort] = useState<any>(null);
@@ -147,8 +148,12 @@ export function CameraFlasher({
 
   // Check Web Serial support
   useEffect(() => {
-    if (isMounted && typeof window !== "undefined" && "serial" in navigator) {
-      setSerialSupported(true);
+    if (isMounted && typeof window !== "undefined") {
+      const secure = window.isSecureContext ?? true;
+      setIsSecure(secure);
+      if ("serial" in navigator) {
+        setSerialSupported(true);
+      }
     }
   }, [isMounted]);
 
@@ -665,7 +670,7 @@ export function CameraFlasher({
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-left max-w-sm w-full">
                   <ShieldAlert className="h-5 w-5 shrink-0" />
                   <p className="text-xs font-medium">
-                    {t("flasher.browserNotSupported")}
+                    {!isSecure ? t("flasher.insecureContext") : t("flasher.browserNotSupported")}
                   </p>
                 </div>
               ) : (
