@@ -10,7 +10,6 @@ const APP_PIN = process.env.APP_PIN;
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || "15m";
 
-// Limit login attempts to 5 per minute per IP
 const loginLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
@@ -20,11 +19,6 @@ const loginLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === "test" && process.env.SKIP_RATE_LIMIT === "true",
 });
 
-/**
- * POST /api/auth/login
- * Validates the PIN and issues a short-lived JWT session token.
- * Body: { pin: string }
- */
 router.post("/login", loginLimiter, (req, res) => {
   const { pin } = req.body;
 
@@ -32,7 +26,6 @@ router.post("/login", loginLimiter, (req, res) => {
     return res.status(400).json({ error: "Missing or invalid PIN" });
   }
 
-  // Validate PIN length (4 digits, numeric only)
   if (!/^\d{4}$/.test(pin)) {
     return res.status(400).json({ error: "The PIN must be exactly 4 numeric digits" });
   }
@@ -43,17 +36,10 @@ router.post("/login", loginLimiter, (req, res) => {
 
   const token = jwt.sign({ role: "admin" }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 
-  // Parse expiry to return it to the client in a friendly format
   const decoded = jwt.decode(token);
   return res.json({ token, expiresAt: decoded.exp * 1000 });
 });
 
-/**
- * POST /api/auth/verify
- * Verifies if the current JWT token is still valid.
- * Used by the frontend on page load to avoid asking for the PIN again.
- * Body: { token: string }
- */
 router.post("/verify", (req, res) => {
   const { token } = req.body;
 

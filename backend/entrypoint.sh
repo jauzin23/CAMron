@@ -3,8 +3,6 @@ set -e
 
 CORE_MARKER="$HOME/.arduino15/packages/esp32"
 
-# One-time install of the ESP32 core into the mounted volume.
-# This only runs on the very first start on a new machine.
 if [ ! -d "$CORE_MARKER" ]; then
   echo ">>> [entrypoint] ESP32 core not found in volume — installing (this happens once per machine)..."
   arduino-cli config init --overwrite

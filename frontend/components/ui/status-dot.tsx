@@ -40,7 +40,6 @@ function StatusDot({
   pulse = false,
   ...props
 }: StatusDotProps) {
-  // Map size to a wrapper dimension to contain the ping animation
   const sizeClass = size === "sm" ? "h-2 w-2" : size === "lg" ? "h-4 w-4" : "h-3 w-3";
 
   return (
@@ -52,7 +51,7 @@ function StatusDot({
         <span
           className={cn(
             "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-            dotVariants({ variant, size: "sm" }) // force smaller ping size to avoid overflow
+            dotVariants({ variant, size: "sm" })
           )}
         />
       )}

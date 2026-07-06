@@ -24,7 +24,7 @@ function EditCameraContent() {
 
   const id = searchParams.get("id") ?? "";
   const stepParam = parseInt(searchParams.get("step") ?? "1", 10);
-  const currentStep = Math.max(1, Math.min(stepParam, STEPS.length)) - 1; // 0-indexed
+  const currentStep = Math.max(1, Math.min(stepParam, STEPS.length)) - 1;
 
   const [camera, setCamera] = useState<Camera | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);

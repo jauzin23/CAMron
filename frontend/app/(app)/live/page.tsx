@@ -46,7 +46,6 @@ interface Camera {
   last_seen?: string | null;
 }
 
-// Layout definition types
 type LayoutNode =
   | {
       id: string;
@@ -64,7 +63,6 @@ interface EffectSettings {
   colorMode: "normal" | "night-vision" | "amber" | "thermal";
 }
 
-// Preset layouts (empty templates)
 const PRESETS: Record<string, LayoutNode> = {
   "1x1": { id: "root", type: "leaf", cameraId: null },
   "2x2": {
@@ -149,7 +147,6 @@ const PRESETS: Record<string, LayoutNode> = {
   },
 };
 
-// Helper to fill empty slots in a layout with real cameras sequentially
 function fillLayoutWithRealCams(
   node: LayoutNode,
   cameras: Camera[],
@@ -172,7 +169,6 @@ function fillLayoutWithRealCams(
   return traverse(node);
 }
 
-// Tree manipulation helpers
 function updateLeafCamera(
   node: LayoutNode,
   targetId: string,
@@ -264,7 +260,6 @@ export default function LivePage() {
   const [layoutType, setLayoutType] = useState<string>("2x2");
   const [fullscreenId, setFullscreenId] = useState<string | null>(null);
 
-  // Custom video visual effects
   const [effects, setEffects] = useState<EffectSettings>({
     colorMode: "normal",
   });
@@ -272,11 +267,9 @@ export default function LivePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasInitializedLayout, setHasInitializedLayout] = useState(false);
 
-  // Real cameras fetched from DB
   const [realCameras, setRealCameras] = useState<Camera[]>([]);
   const availableCameras: Camera[] = realCameras;
 
-  // Fetch real cameras from DB on mount and listen to SSE events to keep states in sync
   useEffect(() => {
     const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
@@ -315,7 +308,6 @@ export default function LivePage() {
     };
   }, []);
 
-  // Dynamically initialize layout if localStorage is empty once realCameras are fetched
   useEffect(() => {
     if (isLoaded && !hasInitializedLayout && realCameras.length > 0) {
       const filledLayout = fillLayoutWithRealCams(PRESETS["2x2"], realCameras);
@@ -329,7 +321,6 @@ export default function LivePage() {
     if (!cam) return;
     const previousState = cam.flash_active;
 
-    // Optimistic UI update
     setRealCameras((prev) =>
       prev.map((c) =>
         c.id === id ? { ...c, flash_active: !previousState } : c,
@@ -345,7 +336,6 @@ export default function LivePage() {
       );
     } catch (err) {
       console.error("Failed to toggle flash", err);
-      // Revert state on error
       setRealCameras((prev) =>
         prev.map((c) =>
           c.id === id ? { ...c, flash_active: previousState } : c,
@@ -354,7 +344,6 @@ export default function LivePage() {
     }
   };
 
-  // Load from localStorage on mount
   useEffect(() => {
     const savedLayout = localStorage.getItem("camron_live_layout");
     const savedType = localStorage.getItem("camron_live_layout_type");
@@ -381,7 +370,6 @@ export default function LivePage() {
     setIsLoaded(true);
   }, []);
 
-  // Save to localStorage on change
   useEffect(() => {
     if (!isLoaded) return;
     localStorage.setItem("camron_live_layout", JSON.stringify(layout));
@@ -415,7 +403,6 @@ export default function LivePage() {
     setLayoutType("custom");
   };
 
-  // Color Filter CSS generator
   const getColorFilterStyle = () => {
     switch (effects.colorMode) {
       case "night-vision":
@@ -429,7 +416,6 @@ export default function LivePage() {
     }
   };
 
-  // Main Recursive Layout Renderer
   const renderLayout = (node: LayoutNode): React.ReactNode => {
     if (node.type === "leaf") {
       return (
@@ -599,7 +585,6 @@ export default function LivePage() {
   );
 }
 
-// Single Camera Cell Component
 interface CameraCellProps {
   nodeId: string;
   cameraId: string | null;
@@ -646,7 +631,6 @@ function CameraCell({
     setShowControls(false);
   };
 
-  // Resolve camera ID
   const camera = cameras.find((c) => c.id === cameraId);
 
   useEffect(() => {

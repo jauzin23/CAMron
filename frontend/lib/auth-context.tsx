@@ -32,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: true,
   });
 
-  // On mount: check if there is a valid JWT in sessionStorage
   useEffect(() => {
     const stored = sessionStorage.getItem(SESSION_KEY);
     if (!stored) {
@@ -40,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Verify the stored token with the backend
     fetch(`${BACKEND_URL}/api/auth/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -60,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  // Listen for the global logout event dispatched by the API client on 401 responses
   useEffect(() => {
     function handleForcedLogout() {
       sessionStorage.removeItem(SESSION_KEY);

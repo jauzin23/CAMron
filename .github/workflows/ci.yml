@@ -23,7 +23,6 @@ jobs:
             backend/package-lock.json
             frontend/package-lock.json
 
-      # Frontend Lint and Typecheck
       - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: npm ci
@@ -36,7 +35,6 @@ jobs:
         working-directory: ./frontend
         run: npx tsc --noEmit
 
-      # Backend Lint
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: npm ci

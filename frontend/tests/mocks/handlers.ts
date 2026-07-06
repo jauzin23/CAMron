@@ -2,7 +2,6 @@ import { http, HttpResponse } from "msw";
 
 const BASE = "http://localhost:3000";
 
-// A sample camera object for mock responses
 export const mockCamera = {
   id: "cam-test-id",
   api_key: "a".repeat(64),
@@ -17,7 +16,6 @@ export const mockCamera = {
 };
 
 export const handlers = [
-  // Auth
   http.post(`${BASE}/api/auth/login`, async ({ request }) => {
     const body = (await request.json()) as { pin?: string };
     if (body.pin === "1234") {
@@ -43,7 +41,6 @@ export const handlers = [
     );
   }),
 
-  // Cameras CRUD
   http.get(`${BASE}/api/cameras`, () => {
     return HttpResponse.json([mockCamera]);
   }),
@@ -73,7 +70,6 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // Flash toggle
   http.post(`${BASE}/api/cameras/:id/flash`, () => {
     return HttpResponse.json({ ok: true, flash_active: true });
   }),

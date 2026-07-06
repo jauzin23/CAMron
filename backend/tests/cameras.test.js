@@ -1,10 +1,5 @@
 "use strict";
 
-/**
- * Camera routes tests
- * Tests CRUD operations, camera registration, and flash toggle.
- */
-
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 const { createTestDb, insertTestCamera } = require("./helpers/db");
@@ -28,8 +23,6 @@ beforeEach(() => {
 afterEach(() => {
   db.close();
 });
-
-// ─── GET /api/cameras ─────────────────────────────────────────────────────────
 
 describe("GET /api/cameras", () => {
   it("returns 401 without JWT", async () => {
@@ -70,8 +63,6 @@ describe("GET /api/cameras", () => {
     expect(res.body[0].flash_active).toBe(false);
   });
 });
-
-// ─── POST /api/cameras ────────────────────────────────────────────────────────
 
 describe("POST /api/cameras", () => {
   it("creates a camera and returns 201 with the camera object", async () => {
@@ -142,8 +133,6 @@ describe("POST /api/cameras", () => {
   });
 });
 
-// ─── GET /api/cameras/:id ─────────────────────────────────────────────────────
-
 describe("GET /api/cameras/:id", () => {
   it("returns the camera for an existing id", async () => {
     insertTestCamera(db, { id: "cam-abc", name: "Found Camera", api_key: "c".repeat(64) });
@@ -171,8 +160,6 @@ describe("GET /api/cameras/:id", () => {
     expect(res.status).toBe(401);
   });
 });
-
-// ─── PUT /api/cameras/:id ─────────────────────────────────────────────────────
 
 describe("PUT /api/cameras/:id", () => {
   it("renames an existing camera", async () => {
@@ -228,8 +215,6 @@ describe("PUT /api/cameras/:id", () => {
   });
 });
 
-// ─── DELETE /api/cameras/:id ──────────────────────────────────────────────────
-
 describe("DELETE /api/cameras/:id", () => {
   it("deletes an existing camera and returns 204", async () => {
     insertTestCamera(db, { id: "cam-del", api_key: "g".repeat(64) });
@@ -239,7 +224,7 @@ describe("DELETE /api/cameras/:id", () => {
       .set("Authorization", authToken);
 
     expect(res.status).toBe(204);
-    expect(res.text).toBe(""); // no body on 204
+    expect(res.text).toBe("");
   });
 
   it("camera is actually removed from the database", async () => {
@@ -280,8 +265,6 @@ describe("DELETE /api/cameras/:id", () => {
     expect(res.status).toBe(401);
   });
 });
-
-// ─── POST /api/cameras/register ──────────────────────────────────────────────
 
 describe("POST /api/cameras/register (camera auth)", () => {
   const API_KEY = "k".repeat(64);
@@ -362,13 +345,11 @@ describe("POST /api/cameras/register (camera auth)", () => {
   });
 
   it("does NOT require JWT (camera auth bypass)", async () => {
-    // Confirm this endpoint is accessible without a JWT
     const res = await request(app)
       .post("/api/cameras/register")
       .set("Authorization", `Bearer ${API_KEY}`)
       .send({ id: CAMERA_ID, ip: "10.0.0.1" });
 
-    // Should succeed (200), not fail with 401
     expect(res.status).toBe(200);
   });
 });

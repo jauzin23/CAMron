@@ -1,6 +1,4 @@
 "use strict";
-
-/** @type {import('jest').Config} */
 const config = {
   testEnvironment: "node",
   testMatch: ["**/tests/**/*.test.js"],
@@ -17,7 +15,6 @@ const config = {
     },
   },
   setupFiles: ["<rootDir>/tests/setup.js"],
-  // Longer timeout for async tests
   testTimeout: 10000,
 };
 

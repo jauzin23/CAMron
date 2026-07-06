@@ -20,9 +20,8 @@ function NewCameraContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Step is driven by ?step= URL param (1-indexed) so back button works
   const stepParam = parseInt(searchParams.get("step") ?? "1", 10);
-  const currentStep = Math.max(1, Math.min(stepParam, 3)) - 1; // 0-indexed max 3 steps
+  const currentStep = Math.max(1, Math.min(stepParam, 3)) - 1;
 
   const { t, language } = useLanguage();
   const [createdCamera, setCreatedCamera] = useState<Camera | null>(null);
@@ -40,27 +39,23 @@ function NewCameraContent() {
     router.push(`/cameras/new?${params.toString()}`);
   }
 
-  // Step 1: create camera in DB, then advance
   async function handleIdentity(name: string) {
     const camera = await createCamera({ name });
     setCreatedCamera(camera);
     goToStep(2);
   }
 
-  // "Add another" - reset to step 1 with a fresh state
   function handleAddAnother() {
     setCreatedCamera(null);
     setSkippedFlash(false);
     router.push("/cameras/new?step=1");
   }
 
-  // Redirect to the dedicated flash page — camera is already in DB from step 1
   function handleFlashNow() {
     if (!createdCamera) return;
     router.push(`/cameras/flash?id=${createdCamera.id}`);
   }
 
-  // Skip flashing — go straight to done
   function handleSkipFlash() {
     setSkippedFlash(true);
     goToStep(3);
@@ -84,10 +79,8 @@ function NewCameraContent() {
       />
 
       <CameraWizard steps={steps} currentStep={currentStep}>
-        {/*Step 1*/}
         {currentStep === 0 && <WizardStepIdentity onNext={handleIdentity} />}
 
-        {/*Step 2*/}
         {currentStep === 1 && createdCamera && (
           <AnimatePresence mode="wait">
             <motion.div
@@ -129,7 +122,6 @@ function NewCameraContent() {
           </AnimatePresence>
         )}
 
-        {/*Step 3*/}
         {currentStep === 2 && createdCamera && (
           <WizardStepDone
             cameraName={createdCamera.name}

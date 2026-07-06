@@ -1,10 +1,5 @@
 "use strict";
 
-/**
- * Health check tests
- * Tests the GET /health endpoint which must be publicly accessible.
- */
-
 const request = require("supertest");
 const { createTestDb } = require("./helpers/db");
 const { createTestApp } = require("./helpers/app");

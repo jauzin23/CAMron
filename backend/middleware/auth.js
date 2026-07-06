@@ -4,19 +4,10 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-/**
- * Middleware: verifies a short-lived JWT session token issued by POST /api/auth/login.
- * Used for all dashboard/frontend-facing endpoints.
- * Accepts the token from:
- *   - Authorization header: "Bearer <jwt>"
- *   - Query parameter: ?token=<jwt>  (used by <img> src for MJPEG stream)
- * Returns 401 with a structured JSON error if the token is missing, invalid, or expired.
- */
 function verifySessionJWT(req, res, next) {
   const authHeader = req.headers["authorization"] || "";
   let token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-  // Allow token via query param (needed for MJPEG stream URLs used in <img> tags)
   if (!token && req.query.token) {
     token = req.query.token;
   }

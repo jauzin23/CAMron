@@ -1,10 +1,5 @@
 "use strict";
 
-/**
- * Auth route tests
- * Tests POST /api/auth/login and POST /api/auth/verify
- */
-
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 const { createTestDb } = require("./helpers/db");
@@ -22,8 +17,6 @@ beforeEach(() => {
 afterEach(() => {
   db.close();
 });
-
-// ─── POST /api/auth/login ─────────────────────────────────────────────────────
 
 describe("POST /api/auth/login", () => {
   it("returns 200 + token on correct PIN", async () => {
@@ -101,7 +94,6 @@ describe("POST /api/auth/login", () => {
       .post("/api/auth/login")
       .send({ pin: 1234 });
 
-    // PIN must be a string — integer should be rejected
     expect(res.status).toBe(400);
   });
 
@@ -114,20 +106,15 @@ describe("POST /api/auth/login", () => {
   });
 });
 
-// ─── Rate limiting on /api/auth/login ─────────────────────────────────────────
-
 describe("POST /api/auth/login — rate limiting", () => {
   it("returns 429 after 5 failed attempts within 1 minute", async () => {
-    // Create app without SKIP_RATE_LIMIT to test actual rate limiting
     const rateLimitedApp = createTestApp(db);
     delete process.env.SKIP_RATE_LIMIT;
 
-    // Make 5 requests (exhausts limit)
     for (let i = 0; i < 5; i++) {
       await request(rateLimitedApp).post("/api/auth/login").send({ pin: "0000" });
     }
 
-    // 6th request should be rate limited
     const res = await request(rateLimitedApp)
       .post("/api/auth/login")
       .send({ pin: "0000" });
@@ -136,8 +123,6 @@ describe("POST /api/auth/login — rate limiting", () => {
     process.env.SKIP_RATE_LIMIT = "true";
   });
 });
-
-// ─── POST /api/auth/verify ────────────────────────────────────────────────────
 
 describe("POST /api/auth/verify", () => {
   let validToken;
@@ -160,7 +145,6 @@ describe("POST /api/auth/verify", () => {
   });
 
   it("returns 401 with TOKEN_EXPIRED for an expired token", async () => {
-    // Sign a token that expired 1 second ago
     const expiredToken = jwt.sign(
       { role: "admin" },
       process.env.JWT_SECRET,

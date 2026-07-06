@@ -18,10 +18,6 @@ function now() {
   return new Date().toISOString();
 }
 
-/**
- * Pings a camera's stream port (TCP 81) to see if it's reachable.
- * Returns true if connection succeeds, false on timeout/error.
- */
 function pingCamera(ip, port = 81, timeout = 2000) {
   return new Promise((resolve) => {
     if (!ip) return resolve(false);
@@ -51,7 +47,6 @@ function pingCamera(ip, port = 81, timeout = 2000) {
   });
 }
 
-// Ping cameras every 5 seconds to update their online status
 if (process.env.NODE_ENV !== "test") {
   setInterval(async () => {
     try {
@@ -86,16 +81,6 @@ if (process.env.NODE_ENV !== "test") {
   }, 5000);
 }
 
-/**
- * @swagger
- * /api/cameras:
- *   get:
- *     summary: Retrieves a list of all cameras
- *     tags: [Cameras]
- *     responses:
- *       200:
- *         description: Success
- */
 router.get("/", (req, res) => {
   try {
     const cameras = db
@@ -114,25 +99,6 @@ router.get("/", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/cameras:
- *   post:
- *     summary: Creates a new camera
- *     tags: [Cameras]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *     responses:
- *       201:
- *         description: Camera created successfully
- */
 router.post("/", (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) {
@@ -161,16 +127,6 @@ router.post("/", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/cameras/events:
- *   get:
- *     summary: Stream Server-Sent Events (SSE) for camera list updates
- *     tags: [Cameras]
- *     responses:
- *       200:
- *         description: Event stream (text/event-stream)
- */
 router.get("/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -192,7 +148,6 @@ router.get("/events", (req, res) => {
     }
   };
 
-  // Send initial data immediately
   sendCameras();
 
   const onChange = () => {
@@ -212,24 +167,6 @@ router.get("/events", (req, res) => {
   });
 });
 
-/**
- * @swagger
- * /api/cameras/{id}:
- *   get:
- *     summary: Gets details of a specific camera
- *     tags: [Cameras]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Success
- *       404:
- *         description: Camera not found
- */
 router.get("/:id", (req, res) => {
   try {
     const camera = db
@@ -243,31 +180,6 @@ router.get("/:id", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/cameras/{id}:
- *   put:
- *     summary: Updates an existing camera
- *     tags: [Cameras]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *     responses:
- *       200:
- *         description: Camera updated successfully
- */
 router.put("/:id", (req, res) => {
   const { name } = req.body;
   if (!name || typeof name !== "string" || !name.trim()) {
@@ -297,22 +209,6 @@ router.put("/:id", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/cameras/{id}:
- *   delete:
- *     summary: Deletes a camera
- *     tags: [Cameras]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       204:
- *         description: Camera deleted successfully
- */
 router.delete("/:id", (req, res) => {
   try {
     const camera = db
@@ -329,30 +225,6 @@ router.delete("/:id", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/cameras/register:
- *   post:
- *     summary: Registers a camera with its IP
- *     tags: [Cameras]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               id:
- *                 type: string
- *               ip:
- *                 type: string
- *     responses:
- *       200:
- *         description: Success
- */
-// Device registers its IP on boot using its unique API key.
 router.post("/register", (req, res) => {
   const { id, ip } = req.body;
   if (!id || !ip) {
@@ -395,22 +267,6 @@ router.post("/register", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/cameras/{id}/flash:
- *   post:
- *     summary: Toggles the camera flash state
- *     tags: [Cameras]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Flash toggled successfully
- */
 router.post("/:id/flash", (req, res) => {
   const { id } = req.params;
   try {

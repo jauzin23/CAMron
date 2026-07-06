@@ -1,14 +1,8 @@
-/**
- * Tests for frontend/lib/language-context.tsx
- * Verifies: t() lookup, variable interpolation, localStorage persistence,
- * language switching, and auto-detection fallback.
- */
 import React from "react";
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { LanguageProvider, useLanguage } from "../../lib/language-context";
 
-// Helper component to expose the context in tests
 function TestConsumer({
   k,
   vars,
@@ -43,12 +37,9 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-// ─── Translation function ─────────────────────────────────────────────────────
-
 describe("t() translation function", () => {
   it("returns translated text for a valid EN key", async () => {
     renderWithProvider("common.loading");
-    // Wait for the useEffect to run and isLoaded to become true
     await act(async () => {});
     expect(screen.getByTestId("translated").textContent).toBe("Loading...");
   });
@@ -62,7 +53,6 @@ describe("t() translation function", () => {
   it("performs variable interpolation for {variable} placeholders", async () => {
     renderWithProvider("login.incorrectPin");
     await act(async () => {});
-    // This key doesn't have variables but we test with a key that does via custom render
     const { unmount } = renderWithProvider("login.restrictedAccess");
     unmount();
   });
@@ -76,14 +66,11 @@ describe("t() translation function", () => {
       fireEvent.click(setPt);
     });
 
-    // PT translation for common.loading should differ from EN
     const translated = screen.getByTestId("translated").textContent;
     expect(typeof translated).toBe("string");
     expect(translated!.length).toBeGreaterThan(0);
   });
 });
-
-// ─── Language persistence ─────────────────────────────────────────────────────
 
 describe("Language persistence", () => {
   it("persists language selection to localStorage on setLanguage", async () => {
@@ -108,7 +95,6 @@ describe("Language persistence", () => {
   });
 
   it("defaults to 'en' when localStorage is empty and browser lang is not PT", async () => {
-    // navigator.language defaults to 'en' in jsdom
     renderWithProvider("common.loading");
     await act(async () => {});
 
@@ -117,11 +103,8 @@ describe("Language persistence", () => {
   });
 });
 
-// ─── useLanguage hook guard ───────────────────────────────────────────────────
-
 describe("useLanguage hook", () => {
   it("throws when used outside LanguageProvider", () => {
-    // Suppress React error output for this test
     const originalError = console.error;
     console.error = () => {};
 

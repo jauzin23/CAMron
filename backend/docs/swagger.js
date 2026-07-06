@@ -17,10 +17,7 @@ const options = {
         },
       },
     },
-    // Apply globally if needed, but it's better to apply per route.
-    // security: [ { bearerAuth: [] } ],
   },
-  // Paths to find JSDoc comments
   apis: ["./routes/*.js"],
 };
 

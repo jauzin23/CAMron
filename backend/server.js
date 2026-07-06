@@ -56,7 +56,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/auth", authRouter);
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 
-// ESP32 registration bypasses JWT (verified via api_key in the handler)
 app.use(
   "/api/cameras",
   (req, res, next) => {
@@ -68,7 +67,6 @@ app.use(
   camerasRouter,
 );
 
-// ESP32 flash confirmation bypasses JWT (verified via api_key in the handler)
 app.use(
   "/api",
   (req, res, next) => {
