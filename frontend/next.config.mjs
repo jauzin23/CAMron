@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Load root .env file if it exists (for local non-Docker development)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootEnvPath = path.resolve(__dirname, "../.env");
 
@@ -28,7 +27,6 @@ if (fs.existsSync(rootEnvPath)) {
   });
 }
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
   typescript: {
@@ -38,7 +36,6 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
-    // Only apply rewrites in development mode (running locally outside Docker)
     if (process.env.NODE_ENV === "development") {
       const devBackendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
       return [

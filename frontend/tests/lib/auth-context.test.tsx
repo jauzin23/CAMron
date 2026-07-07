@@ -1,8 +1,3 @@
-/**
- * Tests for frontend/lib/auth-context.tsx
- * Verifies AuthProvider, useAuth hook, initial load token checking,
- * login/logout operations, and reacting to global forced logout events.
- */
 import React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";

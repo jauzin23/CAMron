@@ -30,7 +30,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract metadata (tags, labels) for Backend
       - name: Extract Backend Metadata
         id: meta-backend
         uses: docker/metadata-action@v5
@@ -41,7 +40,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=true
 
-      # Build and push Backend Image
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v6
         with:
@@ -53,7 +51,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Extract metadata (tags, labels) for Frontend
       - name: Extract Frontend Metadata
         id: meta-frontend
         uses: docker/metadata-action@v5
@@ -64,7 +61,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=true
 
-      # Build and push Frontend Image
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
         with:

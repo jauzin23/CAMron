@@ -17,18 +17,15 @@ const ARDUINO_CLI_PATH =
     ? "C:\\Users\\jaamj\\AppData\\Local\\Programs\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe"
     : "arduino-cli");
 
-// In-memory store for compiler states and confirmations
 const compilations = {};
 const confirmations = {};
 
-// Helper: Auto-detect local LAN IP address
 function getLocalIp() {
   const interfaces = os.networkInterfaces();
   let fallbackIp = "127.0.0.1";
 
   for (const name of Object.keys(interfaces)) {
     const lowerName = name.toLowerCase();
-    // Skip virtual interfaces commonly used by VMs or VPNs
     if (
       lowerName.includes("virtual") ||
       lowerName.includes("vbox") ||
@@ -42,11 +39,9 @@ function getLocalIp() {
     for (const net of interfaces[name]) {
       if (net.family === "IPv4" && !net.internal) {
         const ip = net.address;
-        // Skip VPN address spaces
         if (ip.startsWith("26.") || ip.startsWith("25.")) {
           continue;
         }
-        // Prioritize standard local networks
         if (
           ip.startsWith("192.168.") ||
           ip.startsWith("10.") ||
@@ -63,70 +58,18 @@ function getLocalIp() {
 
 const DETECTED_IP = process.env.HOST_IP || getLocalIp();
 
-// Ensure the temp directory exists
 const tempDirRoot = path.join(__dirname, "..", "temp");
 if (!fs.existsSync(tempDirRoot)) {
   fs.mkdirSync(tempDirRoot, { recursive: true });
 }
 
-/**
- * @swagger
- * /api/network-info:
- *   get:
- *     summary: Gets network information (IP and Port)
- *     tags: [Network]
- *     responses:
- *       200:
- *         description: Success
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 ip:
- *                   type: string
- *                 port:
- *                   type: integer
- */
-// GET /api/network-info
 router.get("/network-info", (req, res) => {
-  // Use PUBLIC_PORT if set (e.g., public gateway port in Docker), fallback to internal PORT
   res.json({
     ip: DETECTED_IP,
     port: process.env.PUBLIC_PORT || process.env.PORT || 3000,
   });
 });
 
-/**
- * @swagger
- * /api/compile/initiate:
- *   post:
- *     summary: Initiates the firmware compilation process for a camera
- *     tags: [Compile]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               wifi_ssid:
- *                 type: string
- *               wifi_password:
- *                 type: string
- *               custom_host:
- *                 type: string
- *               custom_port:
- *                 type: integer
- *               cameraId:
- *                 type: string
- *               name:
- *                 type: string
- *     responses:
- *       200:
- *         description: Compilation initiated successfully
- */
-// POST /api/compile/initiate
 router.post("/compile/initiate", (req, res) => {
   const { wifi_ssid, wifi_password, custom_host, custom_port, cameraId, name } =
     req.body;
@@ -143,7 +86,6 @@ router.post("/compile/initiate", (req, res) => {
 
   try {
     if (finalCameraId) {
-      // Existing camera: fetch, update WiFi settings, and reset api_key
       const camera = db
         .prepare("SELECT * FROM cameras WHERE id = ?")
         .get(finalCameraId);
@@ -152,7 +94,6 @@ router.post("/compile/initiate", (req, res) => {
           .status(404)
           .json({ error: "Camera not found in the database." });
       }
-      // Generate a new unique authentication token for this flash session
       finalApiKey = crypto.randomBytes(32).toString("hex");
       finalName = camera.name;
 
@@ -163,7 +104,6 @@ router.post("/compile/initiate", (req, res) => {
         `[compiler] Re-flash initiated for existing camera: ${finalName} (${finalCameraId}) with new api_key`,
       );
     } else {
-      // New camera: generate credentials and insert to DB
       finalCameraId = crypto.randomUUID();
       finalApiKey = crypto.randomBytes(32).toString("hex");
 
@@ -197,23 +137,6 @@ router.post("/compile/initiate", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/compile/stream/{cameraId}:
- *   get:
- *     summary: Stream Server-Sent Events (SSE) for compilation logs
- *     tags: [Compile]
- *     parameters:
- *       - in: path
- *         name: cameraId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Event stream (text/event-stream)
- */
-// GET /api/compile/stream/:cameraId
 router.get("/compile/stream/:cameraId", (req, res) => {
   const { cameraId } = req.params;
   const compilation = compilations[cameraId];
@@ -222,12 +145,10 @@ router.get("/compile/stream/:cameraId", (req, res) => {
     return res.status(404).json({ error: "Compilation task not found." });
   }
 
-  // Set headers for Server-Sent Events (SSE)
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  // Keep-alive heartbeat
   const heartbeat = setInterval(() => {
     res.write(":\n\n");
   }, 15000);
@@ -237,7 +158,6 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   const targetDir = path.join(tempDirRoot, `temp_${cameraId}`);
   const templateDir = path.join(__dirname, "..", "template");
 
-  // Copy template files to temporary compilation directory
   try {
     if (fs.existsSync(targetDir)) {
       fs.rmSync(targetDir, { recursive: true, force: true });
@@ -271,7 +191,6 @@ router.get("/compile/stream/:cameraId", (req, res) => {
     return;
   }
 
-  // Inject wifi credentials and endpoint configurations
   try {
     const configPath = path.join(targetDir, "camron_template", "config.h");
     let configContent = fs.readFileSync(configPath, "utf8");
@@ -299,7 +218,6 @@ router.get("/compile/stream/:cameraId", (req, res) => {
     return;
   }
 
-  // Run arduino-cli to compile the firmware
   res.write(`data: compiling\n\n`);
   console.log(`[compiler] Starting arduino-cli compile in: ${targetDir}`);
 
@@ -326,7 +244,6 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   arduinoProcess.on("close", (code) => {
     clearInterval(heartbeat);
     if (code === 0) {
-      // Map and rename compiled binaries to the output folder
       try {
         const filesToMap = [
           { srcName: "camron_template.ino.bin", destName: "firmware.bin" },
@@ -351,7 +268,6 @@ router.get("/compile/stream/:cameraId", (req, res) => {
           }
         }
 
-        // Copy bootloader helper file
         const bootAppSrc = path.join(
           targetDir,
           "camron_template",
@@ -381,46 +297,19 @@ router.get("/compile/stream/:cameraId", (req, res) => {
   });
 });
 
-/**
- * @swagger
- * /api/download/{cameraId}/{filename}:
- *   get:
- *     summary: Downloads a compiled file
- *     tags: [Compile]
- *     parameters:
- *       - in: path
- *         name: cameraId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: filename
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Binary file
- *       404:
- *         description: File not found
- */
-// GET /api/download/:cameraId/:filename
 router.get("/download/:cameraId/:filename", (req, res) => {
   const { cameraId, filename } = req.params;
 
-  // Path traversal protection
   if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
     return res.status(400).json({ error: "Invalid filename." });
   }
 
-  // Only allow .bin files to be downloaded
   if (!filename.endsWith(".bin")) {
     return res.status(400).json({ error: "Only .bin files can be downloaded." });
   }
 
   const compilation = compilations[cameraId];
 
-  // We check memory store or DB
   let hasRecord = !!compilation;
   if (!hasRecord) {
     const camera = db
@@ -447,33 +336,6 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/confirm-flash:
- *   post:
- *     summary: Confirms successful camera flash
- *     tags: [Compile]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               id:
- *                 type: string
- *               status:
- *                 type: string
- *               message:
- *                 type: string
- *     responses:
- *       200:
- *         description: Confirmation received
- */
-// POST /api/confirm-flash
-// Called by the ESP32 on its first boot to report success
 router.post("/confirm-flash", (req, res) => {
   const { id } = req.body;
   const authHeader = req.headers["authorization"] || "";
@@ -509,12 +371,10 @@ router.post("/confirm-flash", (req, res) => {
   };
 
   try {
-    // Record flash success in history
     db.prepare(
       "INSERT INTO flash_history (camera_id, success) VALUES (?, 1)",
     ).run(id);
 
-    // Also update camera seen details
     db.prepare(
       "UPDATE cameras SET last_seen = datetime('now'), updated_at = datetime('now') WHERE id = ?",
     ).run(id);
@@ -532,22 +392,6 @@ router.post("/confirm-flash", (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/confirm-status/{cameraId}/events:
- *   get:
- *     summary: Stream Server-Sent Events (SSE) for camera confirm status
- *     tags: [Compile]
- *     parameters:
- *       - in: path
- *         name: cameraId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Event stream (text/event-stream)
- */
 router.get("/confirm-status/:cameraId/events", (req, res) => {
   const { cameraId } = req.params;
 
@@ -603,23 +447,6 @@ router.get("/confirm-status/:cameraId/events", (req, res) => {
   });
 });
 
-/**
- * @swagger
- * /api/confirm-status/{cameraId}:
- *   get:
- *     summary: Checks if the camera has confirmed the flash
- *     tags: [Compile]
- *     parameters:
- *       - in: path
- *         name: cameraId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Confirmation status
- */
-// GET /api/confirm-status/:cameraId
 router.get("/confirm-status/:cameraId", (req, res) => {
   const { cameraId } = req.params;
   const confirmation = confirmations[cameraId];
@@ -628,7 +455,6 @@ router.get("/confirm-status/:cameraId", (req, res) => {
     return res.json({ confirmed: true });
   }
 
-  // Fallback: Check if the camera has registered with the backend since compile/flash was initiated
   const compilation = compilations[cameraId];
   if (compilation) {
     try {
@@ -639,7 +465,6 @@ router.get("/confirm-status/:cameraId", (req, res) => {
         const lastSeenDate = new Date(camera.last_seen);
         const compileDate = new Date(compilation.timestamp);
 
-        // If the registration happened after we initiated compile/flash, or was very recent (last 15s)
         if (lastSeenDate >= compileDate || new Date() - lastSeenDate < 15000) {
           return res.json({
             confirmed: true,
@@ -656,23 +481,6 @@ router.get("/confirm-status/:cameraId", (req, res) => {
 
 
 
-/**
- * @swagger
- * /api/cleanup/{cameraId}:
- *   post:
- *     summary: Cleans up temporary compilation files
- *     tags: [Compile]
- *     parameters:
- *       - in: path
- *         name: cameraId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Success
- */
-// Cleanup Endpoint
 router.post("/cleanup/:cameraId", (req, res) => {
   const { cameraId } = req.params;
   const targetDir = path.join(tempDirRoot, `temp_${cameraId}`);

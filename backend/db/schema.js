@@ -1,10 +1,6 @@
 "use strict";
 
 const db = require("./connection");
-
-/**
- * Creates the table if it doesnt exist  (this is for all tables).
- */
 function initSchema() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS cameras (
@@ -18,8 +14,6 @@ function initSchema() {
       updated_at   TEXT DEFAULT (datetime('now'))
     );
   `);
-
-  // Dynamic migration for wifi credentials
   const tableInfo = db.prepare("PRAGMA table_info(cameras)").all();
   const columns = tableInfo.map((col) => col.name);
 
@@ -31,8 +25,6 @@ function initSchema() {
     db.exec("ALTER TABLE cameras ADD COLUMN wifi_pass TEXT DEFAULT NULL;");
     console.log("[db] Migrated: added column wifi_pass to cameras table.");
   }
-
-  // Create flash_history and settings tables
   db.exec(`
     CREATE TABLE IF NOT EXISTS flash_history (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,

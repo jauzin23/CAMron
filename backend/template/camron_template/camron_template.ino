@@ -1,16 +1,9 @@
-// =============================================================
-// CAMron - Main sketch for ESP32-CAM (AI-Thinker / OV2640)
-// Compiled via arduino-cli with the same toolchain as Arduino IDE
-// =============================================================
-
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Preferences.h>
 #include "config.h"
 
-// AI-Thinker pin map
-// These are fixed for the classic black ESP32-CAM module.
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
@@ -28,7 +21,6 @@
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-// Declared in app_httpd.cpp
 void startCameraServer();
 
 #define FLASH_GPIO_NUM 4
@@ -43,8 +35,6 @@ void setFlash(int value) {
   Serial.printf("Flash set to %d\n", value);
 }
 
-// Startup handshake
-// Tell the backend our IP so it can proxy to us.
 static void registerWithBackend() {
   HTTPClient http;
 
@@ -70,9 +60,6 @@ static void registerWithBackend() {
 }
 
 void setup() {
-  // Wait 500ms to let the CH340/USB-Serial adapter release DTR/RTS lines after flashing.
-  // This avoids a race condition between the chip booting and the browser controlling
-  // the lines via Web Serial. Without this, the chip might not boot properly.
   delay(500);
 
   Serial.begin(115200);
@@ -156,7 +143,6 @@ void setup() {
   Serial.print("Camera IP: ");
   Serial.println(WiFi.localIP());
 
-  // Confirm successful boot in NVS to skip future setup calls
   Preferences preferences;
   preferences.begin("camron", false);
   String storedId = preferences.getString("camera_id", "");

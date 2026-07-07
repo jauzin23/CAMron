@@ -41,7 +41,6 @@ function formatDateTime(value: string, lang: string) {
   }).format(new Date(value));
 }
 
-// Derive online/offline status from last_seen timestamp
 function getCameraStatus(
   camera: Camera,
 ): "online" | "offline" | "unconfigured" {
@@ -59,7 +58,6 @@ export default function ControlCenterPage() {
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [camerasLoading, setCamerasLoading] = useState(true);
 
-  // Load cameras from API
   const loadCameras = useCallback(
     async (showLoading = true) => {
       if (showLoading) setCamerasLoading(true);
@@ -98,7 +96,6 @@ export default function ControlCenterPage() {
       console.error("Cameras SSE connection error:", err);
     };
 
-    // Refresh status when the tab gets focused
     const handleFocus = () => {
       void loadCameras(false);
     };
@@ -125,7 +122,6 @@ export default function ControlCenterPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    // Optimistic update
     setCameras((prev) => prev.filter((c) => c.id !== id));
 
     try {
@@ -139,7 +135,6 @@ export default function ControlCenterPage() {
   };
 
   const handleToggleFlash = async (camera: Camera) => {
-    // Optimistic update
     const previousState = camera.flash_active;
     setCameras((prev) =>
       prev.map((c) =>
@@ -162,7 +157,6 @@ export default function ControlCenterPage() {
       );
     } catch {
       toast.error(t("common.error"));
-      // Revert on error
       setCameras((prev) =>
         prev.map((c) =>
           c.id === camera.id ? { ...c, flash_active: previousState } : c,

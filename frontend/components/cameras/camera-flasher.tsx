@@ -43,7 +43,6 @@ interface CameraFlasherProps {
   onComplete?: () => void;
   onCancel?: () => void;
   onStepChange?: (step: FlashingStep) => void;
-  /** Called whenever the mascot state should change (asleep → working) */
   onMascotStateChange?: (state: MascotState) => void;
 }
 
@@ -91,7 +90,6 @@ export function CameraFlasher({
 
   const [step, setStepState] = useState<FlashingStep>("connect");
 
-  /** Derive mascot state: asleep while idle (connect/wifi), working once processing starts */
   function getMascotState(s: FlashingStep): MascotState {
     return s === "connect" || s === "wifi" ? "asleep" : "working";
   }
@@ -135,7 +133,6 @@ export function CameraFlasher({
   const eventSourceRef = useRef<EventSource | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
-  // Load camera props if provided
   useEffect(() => {
     if (camera) {
       setCameraId(camera.id);
@@ -146,7 +143,6 @@ export function CameraFlasher({
     }
   }, [camera]);
 
-  // Check Web Serial support
   useEffect(() => {
     if (isMounted && typeof window !== "undefined") {
       const secure = window.isSecureContext ?? true;
@@ -157,7 +153,6 @@ export function CameraFlasher({
     }
   }, [isMounted]);
 
-  // Countdown timer for connection step
   useEffect(() => {
     if (step === "connect") {
       if (!isFirstLoadRef.current) {
@@ -179,7 +174,6 @@ export function CameraFlasher({
     }
   }, [step]);
 
-  // Fetch network configuration and configured cameras
   useEffect(() => {
     if (isMounted) {
       const fetchNetworkInfo = async () => {
@@ -234,7 +228,6 @@ export function CameraFlasher({
 
       setPort(activePort);
 
-      // Perform initial handshake using raw serial communication
       let detectedId = "";
       try {
         await activePort.open({ baudRate: 115200 });
@@ -319,7 +312,6 @@ export function CameraFlasher({
         }
         setStep("wifi");
       } else {
-        // Fallback: Verify connection using the standard loader handshake
         const transport = new Transport(activePort, false);
         transportRef.current = transport;
 
@@ -413,7 +405,6 @@ export function CameraFlasher({
       const { cameraId: generatedId } = await response.json();
       setCameraId(generatedId);
 
-      // EventSource does not support custom headers, so the JWT token is passed in the query
       const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
       const eventSource = new EventSource(
         `${BACKEND_URL}/api/compile/stream/${generatedId}?token=${encodeURIComponent(sseToken)}`,
@@ -536,7 +527,6 @@ export function CameraFlasher({
         if (typeof (loader as any).hardReset === "function") {
           await (loader as any).hardReset();
         } else {
-          // Manual hardware reset sequence
           await transport.setRTS(true);
           await transport.setDTR(false);
           await new Promise((resolve) => setTimeout(resolve, 100));
@@ -551,7 +541,6 @@ export function CameraFlasher({
         await transport.disconnect();
       } catch (discErr) {}
 
-      // DTR/RTS pulse to release reset state and boot the ESP32 cleanly
       try {
         await new Promise((resolve) => setTimeout(resolve, 300));
         await activePort.open({ baudRate: 115200 });
@@ -611,10 +600,9 @@ export function CameraFlasher({
     };
 
     eventSource.onerror = () => {
-      // EventSource automatically retries on error
+      ;
     };
 
-    // Timeout verification after 60 seconds
     setTimeout(() => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();

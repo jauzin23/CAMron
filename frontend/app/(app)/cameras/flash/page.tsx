@@ -11,7 +11,6 @@ import { useDevice } from "@/lib/device-context";
 import { DeviceRestrictedPage } from "@/components/device-restricted-page";
 import { useLanguage } from "@/lib/language-context";
 
-/** Internal flash steps shown in the left panel progress indicator */
 const FLASH_STEPS = [
   { label: "Connect USB" },
   { label: "Wi-Fi Setup" },
@@ -20,7 +19,6 @@ const FLASH_STEPS = [
   { label: "Verify" },
 ];
 
-/** Map the internal FlashingStep to a 0-indexed step number for the progress bar */
 type FlashingStep = "connect" | "wifi" | "compiling" | "flashing" | "verifying" | "success" | "failed";
 
 function flashingStepToIndex(step: FlashingStep): number {
@@ -46,7 +44,6 @@ function FlashCameraContent() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Mascot + step tracking
   const [mascotState, setMascotState] = useState<MascotState>("asleep");
   const [currentFlashStep, setCurrentFlashStep] = useState<FlashingStep>("connect");
 
@@ -84,7 +81,6 @@ function FlashCameraContent() {
     return null;
   }
 
-  // Loading state — still show the layout with the asleep mascot
   if (loading) {
     return (
       <FlashLayout
@@ -109,7 +105,6 @@ function FlashCameraContent() {
     );
   }
 
-  // Error state
   if (hasError || !camera) {
     return (
       <FlashLayout

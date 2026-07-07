@@ -1,9 +1,3 @@
-// =============================================================
-// CAMron - Stripped MJPEG stream server for ESP32-CAM (AI-Thinker)
-// Only serves /stream on STREAM_PORT, protected by bearer token.
-// All other requests → 401 Unauthorized.
-// =============================================================
-
 #include "esp_http_server.h"
 #include "esp_timer.h"
 #include "esp_camera.h"
@@ -25,20 +19,16 @@ static const char *_STREAM_PART =
 static httpd_handle_t stream_httpd = NULL;
 static httpd_handle_t control_httpd = NULL;
 
-// Returns true if the request carries the correct bearer token.
 static bool check_bearer(httpd_req_t *req) {
   char auth_buf[80];
-  // Reject if no Authorization header or buffer too small
   if (httpd_req_get_hdr_value_str(req, "Authorization", auth_buf, sizeof(auth_buf)) != ESP_OK) {
     return false;
   }
-  // Expected: "Bearer <token>"
   char expected[72];
   snprintf(expected, sizeof(expected), "Bearer %s", CAMERA_BEARER_TOKEN);
   return (strcmp(auth_buf, expected) == 0);
 }
 
-// Send 401 and close
 static esp_err_t send_401(httpd_req_t *req) {
   httpd_resp_set_status(req, "401 Unauthorized");
   httpd_resp_set_type(req, "text/plain");
@@ -47,7 +37,6 @@ static esp_err_t send_401(httpd_req_t *req) {
 }
 
 static esp_err_t stream_handler(httpd_req_t *req) {
-  // ❶ Auth gate - first thing, no exceptions
   if (!check_bearer(req)) {
     return send_401(req);
   }
@@ -61,9 +50,6 @@ static esp_err_t stream_handler(httpd_req_t *req) {
 
   res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
   if (res != ESP_OK) return res;
-
-  // Don't expose camera to cross-origin - intentionally omit CORS wildcard
-  // (backend proxy is the only legitimate caller)
 
   while (true) {
     fb = esp_camera_fb_get();
@@ -100,7 +86,6 @@ static esp_err_t stream_handler(httpd_req_t *req) {
       res = httpd_resp_send_chunk(req, (const char *)jpg_buf, jpg_len);
     }
 
-    // Return / free frame buffer
     if (fb) {
       esp_camera_fb_return(fb);
       fb      = NULL;
@@ -160,14 +145,11 @@ static esp_err_t flash_handler(httpd_req_t *req) {
   return ESP_OK;
 }
 
-// rejects everything that isn't /stream
-// Registered as a wildcard URI so stray requests get 401, not 404.
 static esp_err_t reject_handler(httpd_req_t *req) {
   return send_401(req);
 }
 
 void startCameraServer() {
-  // 1. Control server (port 80)
   httpd_config_t control_config = HTTPD_DEFAULT_CONFIG();
   control_config.server_port = CONTROL_PORT;
   control_config.ctrl_port = 32768;
@@ -196,7 +178,6 @@ void startCameraServer() {
     log_e("Failed to start control server!");
   }
 
-  // 2. Stream server (port 81)
   httpd_config_t stream_config = HTTPD_DEFAULT_CONFIG();
   stream_config.server_port = STREAM_PORT;
   stream_config.ctrl_port = 32769;

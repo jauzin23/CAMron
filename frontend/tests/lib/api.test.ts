@@ -1,8 +1,3 @@
-/**
- * Tests for frontend/lib/api.ts
- * Verifies that the API client correctly constructs requests, attaches auth headers,
- * and dispatches the camron:logout event on 401 responses.
- */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../mocks/server";
@@ -15,8 +10,6 @@ import {
   authFetch,
 } from "../../lib/api";
 
-// The API client reads from NEXT_PUBLIC_BACKEND_URL — MSW handlers are on localhost:3000
-// Since NEXT_PUBLIC_BACKEND_URL defaults to "" we need to set it
 vi.stubEnv("NEXT_PUBLIC_BACKEND_URL", "http://localhost:3000");
 
 const SESSION_KEY = "camron_jwt";
@@ -24,8 +17,6 @@ const SESSION_KEY = "camron_jwt";
 beforeEach(() => {
   sessionStorage.clear();
 });
-
-// ─── getCameras ───────────────────────────────────────────────────────────────
 
 describe("getCameras()", () => {
   it("sends GET /api/cameras and returns camera array", async () => {
@@ -79,7 +70,6 @@ describe("getCameras()", () => {
     try {
       await getCameras();
     } catch {
-      // Expected to throw
     }
 
     const logoutEvent = dispatchSpy.mock.calls.find(
@@ -88,8 +78,6 @@ describe("getCameras()", () => {
     expect(logoutEvent).toBeDefined();
   });
 });
-
-// ─── createCamera ─────────────────────────────────────────────────────────────
 
 describe("createCamera()", () => {
   it("sends POST /api/cameras with correct body", async () => {
@@ -113,8 +101,6 @@ describe("createCamera()", () => {
   });
 });
 
-// ─── updateCamera ─────────────────────────────────────────────────────────────
-
 describe("updateCamera()", () => {
   it("sends PUT /api/cameras/:id with correct body", async () => {
     let capturedBody: unknown = null;
@@ -133,8 +119,6 @@ describe("updateCamera()", () => {
     expect(capturedUrl).toBe("cam-123");
   });
 });
-
-// ─── deleteCamera ─────────────────────────────────────────────────────────────
 
 describe("deleteCamera()", () => {
   it("sends DELETE /api/cameras/:id", async () => {
@@ -163,7 +147,6 @@ describe("deleteCamera()", () => {
     try {
       await deleteCamera("cam-x");
     } catch {
-      // Expected to throw
     }
 
     const logoutEvent = dispatchSpy.mock.calls.find(
@@ -173,8 +156,6 @@ describe("deleteCamera()", () => {
   });
 });
 
-// ─── toggleFlash ─────────────────────────────────────────────────────────────
-
 describe("toggleFlash()", () => {
   it("sends POST /api/cameras/:id/flash and returns result", async () => {
     const result = await toggleFlash("cam-flash");
@@ -182,8 +163,6 @@ describe("toggleFlash()", () => {
     expect(result).toHaveProperty("flash_active");
   });
 });
-
-// ─── authFetch ────────────────────────────────────────────────────────────────
 
 describe("authFetch()", () => {
   it("attaches token from sessionStorage to request", async () => {

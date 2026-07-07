@@ -30,7 +30,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setLanguageState(saved);
       document.documentElement.lang = saved === "pt" ? "pt-PT" : "en-US";
     } else {
-      // Auto-detect browser language
       const browserLang = navigator.language.slice(0, 2);
       const initialLang: Language = browserLang === "pt" ? "pt" : "en";
       setLanguageState(initialLang);
@@ -57,7 +56,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       if (current && typeof current === "object" && part in current) {
         current = current[part];
       } else {
-        return key; // fallback to key
+        return key;
       }
     }
 

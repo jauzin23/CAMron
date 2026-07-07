@@ -1,10 +1,5 @@
 "use strict";
 
-/**
- * Flash / compile route tests
- * Tests: network-info, compile/initiate, download, confirm-flash, confirm-status, cleanup
- */
-
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 const { createTestDb, insertTestCamera } = require("./helpers/db");
@@ -26,8 +21,6 @@ beforeEach(() => {
 afterEach(() => {
   db.close();
 });
-
-// ─── GET /api/network-info ────────────────────────────────────────────────────
 
 describe("GET /api/network-info", () => {
   it("returns ip and port", async () => {
@@ -54,8 +47,6 @@ describe("GET /api/network-info", () => {
   });
 });
 
-// ─── POST /api/compile/initiate ───────────────────────────────────────────────
-
 describe("POST /api/compile/initiate", () => {
   it("creates a new camera record and returns cameraId for new camera", async () => {
     const res = await request(app)
@@ -66,7 +57,6 @@ describe("POST /api/compile/initiate", () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty("cameraId");
 
-    // Camera should exist in DB
     const camera = db
       .prepare("SELECT * FROM cameras WHERE id = ?")
       .get(res.body.cameraId);
@@ -90,7 +80,6 @@ describe("POST /api/compile/initiate", () => {
     expect(res.status).toBe(200);
     expect(res.body.cameraId).toBe("cam-reflash");
 
-    // api_key must have changed
     const updated = db
       .prepare("SELECT api_key FROM cameras WHERE id = ?")
       .get("cam-reflash");
@@ -147,8 +136,6 @@ describe("POST /api/compile/initiate", () => {
   });
 });
 
-// ─── GET /api/download/:cameraId/:filename ────────────────────────────────────
-
 describe("GET /api/download/:cameraId/:filename", () => {
   it("returns 400 for path traversal attempt (..)", async () => {
     insertTestCamera(db, { id: "cam-dl", api_key: "n".repeat(64) });
@@ -157,8 +144,6 @@ describe("GET /api/download/:cameraId/:filename", () => {
       .get("/api/download/cam-dl/../../etc/passwd")
       .set("Authorization", makeAuthHeader());
 
-    // Express router may decode path and the route param might not match,
-    // but if it does, it should be rejected
     expect([400, 404]).toContain(res.status);
   });
 
@@ -195,8 +180,6 @@ describe("GET /api/download/:cameraId/:filename", () => {
     expect(res.status).toBe(401);
   });
 });
-
-// ─── POST /api/confirm-flash ──────────────────────────────────────────────────
 
 describe("POST /api/confirm-flash (camera auth, no JWT)", () => {
   const CAM_ID = "cam-confirm";
@@ -248,7 +231,6 @@ describe("POST /api/confirm-flash (camera auth, no JWT)", () => {
   });
 
   it("does NOT require JWT (camera auth bypass)", async () => {
-    // Should work without a JWT token
     const res = await request(app)
       .post("/api/confirm-flash")
       .set("Authorization", `Bearer ${CAM_API_KEY}`)
@@ -257,8 +239,6 @@ describe("POST /api/confirm-flash (camera auth, no JWT)", () => {
     expect(res.status).toBe(200);
   });
 });
-
-// ─── GET /api/confirm-status/:cameraId ───────────────────────────────────────
 
 describe("GET /api/confirm-status/:cameraId", () => {
   it("returns { confirmed: false } when flash not yet confirmed", async () => {
@@ -277,8 +257,6 @@ describe("GET /api/confirm-status/:cameraId", () => {
     expect(res.status).toBe(401);
   });
 });
-
-// ─── POST /api/cleanup/:cameraId ─────────────────────────────────────────────
 
 describe("POST /api/cleanup/:cameraId", () => {
   it("returns 200 when temp dir does not exist (idempotent)", async () => {

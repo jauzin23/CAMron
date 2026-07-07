@@ -1,7 +1,3 @@
-// Camera API endpoints. All calls go to NEXT_PUBLIC_BACKEND_URL.
-// Every request automatically attaches the JWT session token from sessionStorage.
-// Any 401 response triggers a logout
-
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 const SESSION_KEY = "camron_jwt";
 

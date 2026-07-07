@@ -10,7 +10,7 @@ export interface Step {
 
 interface CameraWizardProps {
   steps: Step[];
-  currentStep: number; // 0-indexed
+  currentStep: number;
   children: React.ReactNode;
 }
 

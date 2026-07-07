@@ -1,15 +1,9 @@
-/**
- * Tests for frontend/components/login-screen.tsx
- * Verifies rendering, input behaviour, login triggering, error display,
- * and language selection.
- */
 import React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { LanguageProvider } from "../../lib/language-context";
 import { LoginScreen } from "../../components/login-screen";
 
-// Mock the dependencies to avoid Radix UI and input-otp complexities in jsdom
 vi.mock("@/components/ui/warp-background", () => ({
   WarpBackground: ({ children }: any) => <div data-testid="warp">{children}</div>,
 }));
@@ -28,7 +22,6 @@ vi.mock("@/components/ui/input-otp", () => ({
   InputOTPSlot: () => null,
 }));
 
-// Mock dropdown menu to bypass Radix UI click triggering complexities
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: any) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
@@ -107,7 +100,6 @@ describe("<LoginScreen />", () => {
       fireEvent.change(input, { target: { value: "12ab" } });
     });
 
-    // It regex validates for digits only
     expect(input.value).toBe("");
   });
 
@@ -124,7 +116,6 @@ describe("<LoginScreen />", () => {
     await act(async () => {
       fireEvent.change(input, { target: { value: "1234" } });
     });
-    // Wait for async login check to resolve
     await act(async () => {});
 
     expect(screen.getByText("Incorrect PIN. Try again.")).toBeInTheDocument();
@@ -166,7 +157,6 @@ describe("<LoginScreen />", () => {
     );
     await act(async () => {});
 
-    // Default language is English (Enter your PIN to access...)
     expect(screen.getByText(/Enter your PIN/i)).toBeInTheDocument();
 
     const ptBtn = screen.getByTestId("lang-item-pt");
@@ -174,7 +164,6 @@ describe("<LoginScreen />", () => {
       fireEvent.click(ptBtn);
     });
 
-    // Text changes to Portuguese equivalent
     expect(screen.getByText(/Introduza o seu PIN/i)).toBeInTheDocument();
   });
 });

@@ -1,10 +1,5 @@
 "use strict";
 
-/**
- * JWT middleware tests (verifySessionJWT)
- * Tests the middleware in isolation and via the protected routes.
- */
-
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
 const { createTestDb } = require("./helpers/db");
@@ -27,7 +22,6 @@ afterEach(() => {
   db.close();
 });
 
-// We test the middleware via a JWT-protected route: GET /api/cameras
 describe("verifySessionJWT middleware", () => {
   it("allows request with valid Bearer token in Authorization header", async () => {
     const token = makeValidToken();
@@ -96,7 +90,7 @@ describe("verifySessionJWT middleware", () => {
 
     const res = await request(app)
       .get("/api/cameras")
-      .set("Authorization", token); // missing "Bearer " prefix
+      .set("Authorization", token);
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_MISSING");

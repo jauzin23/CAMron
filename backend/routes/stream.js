@@ -42,33 +42,6 @@ function cleanupStream(camId) {
   delete activeStreams[camId];
 }
 
-/**
- * @swagger
- * /stream:
- *   get:
- *     summary: Proxies the camera video stream
- *     tags: [Stream]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: id
- *         required: false
- *         schema:
- *           type: string
- *         description: Camera ID (optional, defaults to first camera)
- *     responses:
- *       200:
- *         description: Video stream (MJPEG)
- *         content:
- *           multipart/x-mixed-replace:
- *             schema:
- *               type: string
- *               format: binary
- *       503:
- *         description: No cameras registered
- */
-// Proxies the MJPEG stream from the camera (multiplexed, reads camera IP from DB).
 router.get("/", (req, res) => {
 
   let cam;

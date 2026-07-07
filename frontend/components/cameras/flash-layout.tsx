@@ -16,17 +16,11 @@ export interface FlashStep {
 }
 
 interface FlashLayoutProps {
-  /** Which GIF to display — "asleep" before compile, "working" after */
   mascotState?: MascotState;
-  /** Optional camera name shown in the left panel header */
   cameraName?: string;
-  /** Step labels and statuses for the left-panel progress indicator */
   steps: FlashStep[];
-  /** 0-indexed step currently active */
   currentStep: number;
-  /** The right-panel content (step form / progress / etc.) */
   children: React.ReactNode;
-  /** Optional header actions (e.g., back button) rendered in top-right area */
   headerActions?: React.ReactNode;
 }
 

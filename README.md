@@ -33,6 +33,7 @@
   - [What is CAMron?](#what-is-camron)
     - [Key Features](#key-features)
   - [Screenshots](#screenshots)
+  - [Demo Video](#demo-video)
   - [Supported Hardware](#supported-hardware)
   - [Browser Compatibility](#browser-compatibility)
   - [How it Works](#how-it-works)
@@ -85,6 +86,10 @@ Commercial security cameras are expensive, require subscriptions, and store vide
   <img src="./docs/screenshots/dash.png" alt="CAMron Dashboard" width="31%">
   <img src="./docs/screenshots/flashing.png" alt="CAMron Flashing" width="31%">
 </div>
+
+## Demo Video
+
+A walkthrough video demonstrating CAMron's features, compiler backend, and browser flashing process is available in the repository at [docs/demo.mp4](docs/demo.mp4).
 
 ---
 

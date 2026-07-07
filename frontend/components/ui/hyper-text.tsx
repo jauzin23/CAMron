@@ -43,21 +43,13 @@ type HyperTextMotionComponent = ComponentType<
 >
 
 interface HyperTextProps extends Omit<MotionProps, "children"> {
-  /** The text content to be animated */
   children: string
-  /** Optional className for styling */
   className?: string
-  /** Duration of the animation in milliseconds */
   duration?: number
-  /** Delay before animation starts in milliseconds */
   delay?: number
-  /** Component to render as - defaults to div */
   as?: MotionElementType
-  /** Whether to start animation when element comes into view */
   startOnView?: boolean
-  /** Whether to trigger animation on hover */
   animateOnHover?: boolean
-  /** Custom character set for scramble effect. Defaults to uppercase alphabet */
   characterSet?: CharacterSet
 }
 
@@ -94,7 +86,6 @@ export function HyperText({
     }
   }
 
-  // Handle animation start based on view or delay
   useEffect(() => {
     if (!startOnView) {
       const startTimeout = setTimeout(() => {
@@ -122,7 +113,6 @@ export function HyperText({
     return () => observer.disconnect()
   }, [delay, startOnView])
 
-  // Handle scramble animation
   useEffect(() => {
     let animationFrameId: number | null = null
 
