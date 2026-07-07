@@ -54,11 +54,12 @@
   - [Contributing](#contributing)
     - [Local Development](#local-development)
   - [FAQ](#faq)
-      - [Why can't the browser find any serial ports?](#why-cant-the-browser-find-any-serial-ports)
-      - [Why did the first container startup take so long?](#why-did-the-first-container-startup-take-so-long)
-      - [Why does the compilation process take a long time?](#why-does-the-compilation-process-take-a-long-time)
-      - [Why does the camera fail to connect to my wifi?](#why-does-the-camera-fail-to-connect-to-my-wifi)
-      - [Why does the camera show as offline in the dashboard?](#why-does-the-camera-show-as-offline-in-the-dashboard)
+    - [Why can't the browser find any serial ports?](#why-cant-the-browser-find-any-serial-ports)
+    - [Why did the first container startup take so long?](#why-did-the-first-container-startup-take-so-long)
+    - [Why does the compilation process take a long time?](#why-does-the-compilation-process-take-a-long-time)
+    - [Why does the camera fail to connect to my wifi?](#why-does-the-camera-fail-to-connect-to-my-wifi)
+    - [Why does the camera show as offline in the dashboard?](#why-does-the-camera-show-as-offline-in-the-dashboard)
+  - [Star History](#star-history)
   - [License](#license)
 
 ---
@@ -362,6 +363,18 @@ This might be due to a couple of reasons:
 #### Why does the camera show as offline in the dashboard?
 
 Ensure that `HOST_IP` in `.env` is set to your computer's local network IP (e.g. `192.168.x.x`), not `localhost`.
+
+---
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=jauzin23%2FCAMron&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=jauzin23/CAMron&type=date&theme=dark&legend=top-left&sealed_token=lSgoAbOH8beBySyf-T9BQyDlrG9h__NkqwZl-ev11l62u3T7-kdp36BqaneewuXVZdxkQ6CP1PWdjdjTYlLYfW51N9GjaX3SsDw6F9uM9NJkGKHqfEjGnty63R5TqNXY0q5liktf1GmSHZ50CXN7UaBNxyQ0ytV-QPOPzpbg-jvreIsMDict2ml1hykc" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=jauzin23/CAMron&type=date&legend=top-left&sealed_token=lSgoAbOH8beBySyf-T9BQyDlrG9h__NkqwZl-ev11l62u3T7-kdp36BqaneewuXVZdxkQ6CP1PWdjdjTYlLYfW51N9GjaX3SsDw6F9uM9NJkGKHqfEjGnty63R5TqNXY0q5liktf1GmSHZ50CXN7UaBNxyQ0ytV-QPOPzpbg-jvreIsMDict2ml1hykc" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=jauzin23/CAMron&type=date&legend=top-left&sealed_token=lSgoAbOH8beBySyf-T9BQyDlrG9h__NkqwZl-ev11l62u3T7-kdp36BqaneewuXVZdxkQ6CP1PWdjdjTYlLYfW51N9GjaX3SsDw6F9uM9NJkGKHqfEjGnty63R5TqNXY0q5liktf1GmSHZ50CXN7UaBNxyQ0ytV-QPOPzpbg-jvreIsMDict2ml1hykc" />
+ </picture>
+</a>
 
 ---
 
