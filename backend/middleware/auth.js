@@ -3,14 +3,20 @@
 const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const COOKIE_NAME = "camron_session";
 
 function verifySessionJWT(req, res, next) {
-  const authHeader = req.headers["authorization"] || "";
-  let token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  // Primary: HttpOnly session cookie (browser sessions)
+  let token = req.cookies?.[COOKIE_NAME] || null;
 
-  if (!token && req.query.token) {
-    token = req.query.token;
+  // Fallback: Authorization Bearer header (API / tooling)
+  if (!token) {
+    const authHeader = req.headers["authorization"] || "";
+    token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   }
+
+  // The ?token= query param fallback has been intentionally removed.
+  // Tokens in URLs are logged by proxies and CDNs.
 
   if (!token) {
     return res.status(401).json({ error: "Token missing", code: "TOKEN_MISSING" });

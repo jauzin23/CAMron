@@ -2,6 +2,8 @@ import { http, HttpResponse } from "msw";
 
 const BASE = "http://localhost:3000";
 
+const VALID_COOKIE = "camron_session=mock-jwt-token";
+
 export const mockCamera = {
   id: "cam-test-id",
   api_key: "a".repeat(64),
@@ -19,26 +21,36 @@ export const handlers = [
   http.post(`${BASE}/api/auth/login`, async ({ request }) => {
     const body = (await request.json()) as { pin?: string };
     if (body.pin === "1234") {
-      return HttpResponse.json({
-        token: "mock-jwt-token",
-        expiresAt: Date.now() + 60 * 60 * 1000,
+      return new HttpResponse(JSON.stringify({ ok: true, expiresAt: Date.now() + 60 * 60 * 1000 }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Set-Cookie": `${VALID_COOKIE}; HttpOnly; Path=/`,
+        },
       });
     }
     return HttpResponse.json({ error: "Incorrect PIN" }, { status: 401 });
   }),
 
-  http.post(`${BASE}/api/auth/verify`, async ({ request }) => {
-    const body = (await request.json()) as { token?: string };
-    if (body.token === "mock-jwt-token") {
-      return HttpResponse.json({
-        valid: true,
-        expiresAt: Date.now() + 60 * 60 * 1000,
-      });
-    }
+  http.post(`${BASE}/api/auth/verify`, () => {
+    // In jsdom, MSW Set-Cookie headers don't get forwarded as real browser
+    // cookies on subsequent requests. The auth context tests focus on state
+    // transitions (authenticated/unauthenticated), not cookie mechanics.
+    // Cookie behaviour is covered by the backend auth.test.js suite.
     return HttpResponse.json(
-      { valid: false, code: "TOKEN_INVALID" },
+      { valid: false, code: "TOKEN_MISSING" },
       { status: 401 }
     );
+  }),
+
+  http.post(`${BASE}/api/auth/logout`, () => {
+    return new HttpResponse(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Set-Cookie": "camron_session=; Max-Age=0; Path=/",
+      },
+    });
   }),
 
   http.get(`${BASE}/api/cameras`, () => {

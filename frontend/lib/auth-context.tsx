@@ -9,10 +9,8 @@ import React, {
 } from "react";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-const SESSION_KEY = "camron_jwt";
 
 interface AuthState {
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -20,48 +18,39 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   login: (pin: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  getToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
-    token: null,
     isAuthenticated: false,
     isLoading: true,
   });
 
+  // On mount, ask the backend to verify the session cookie.
+  // No token is stored client-side — the HttpOnly cookie is sent automatically.
   useEffect(() => {
-    const stored = sessionStorage.getItem(SESSION_KEY);
-    if (!stored) {
-      setState({ token: null, isAuthenticated: false, isLoading: false });
-      return;
-    }
-
     fetch(`${BACKEND_URL}/api/auth/verify`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: stored }),
     })
       .then((res) => {
         if (res.ok) {
-          setState({ token: stored, isAuthenticated: true, isLoading: false });
+          setState({ isAuthenticated: true, isLoading: false });
         } else {
-          sessionStorage.removeItem(SESSION_KEY);
-          setState({ token: null, isAuthenticated: false, isLoading: false });
+          setState({ isAuthenticated: false, isLoading: false });
         }
       })
       .catch(() => {
-        sessionStorage.removeItem(SESSION_KEY);
-        setState({ token: null, isAuthenticated: false, isLoading: false });
+        setState({ isAuthenticated: false, isLoading: false });
       });
   }, []);
 
   useEffect(() => {
     function handleForcedLogout() {
-      sessionStorage.removeItem(SESSION_KEY);
-      setState({ token: null, isAuthenticated: false, isLoading: false });
+      setState({ isAuthenticated: false, isLoading: false });
     }
 
     window.addEventListener("camron:logout", handleForcedLogout);
@@ -74,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pin }),
         });
@@ -87,9 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
         }
 
-        sessionStorage.setItem(SESSION_KEY, data.token);
         setState({
-          token: data.token,
           isAuthenticated: true,
           isLoading: false,
         });
@@ -101,17 +89,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const logout = useCallback(() => {
-    sessionStorage.removeItem(SESSION_KEY);
-    setState({ token: null, isAuthenticated: false, isLoading: false });
-  }, []);
-
-  const getToken = useCallback(() => {
-    return sessionStorage.getItem(SESSION_KEY);
+  const logout = useCallback(async () => {
+    try {
+      await fetch(`${BACKEND_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Even if the request fails, clear local state
+    }
+    setState({ isAuthenticated: false, isLoading: false });
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, getToken }}>
+    <AuthContext.Provider value={{ ...state, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

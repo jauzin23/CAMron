@@ -10,7 +10,9 @@ export interface ShimmerButtonProps extends ComponentPropsWithoutRef<"button"> {
   background?: string
   className?: string
   children?: React.ReactNode
+  shimmerSpread?: string
 }
+
 
 export const ShimmerButton = React.forwardRef<
   HTMLButtonElement,

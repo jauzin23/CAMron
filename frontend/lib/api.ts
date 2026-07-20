@@ -1,31 +1,22 @@
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-const SESSION_KEY = "camron_jwt";
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(SESSION_KEY);
-}
-
-function authHeaders(extra?: Record<string, string>): Record<string, string> {
-  const token = getToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...extra,
-  };
-}
-
+/**
+ * Wraps fetch with credentials: "include" so the HttpOnly session cookie
+ * is automatically forwarded on every request. Also dispatches the global
+ * camron:logout event when the server responds with 401.
+ */
 export async function authFetch(
   url: string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const token = getToken();
-  const headers = new Headers(options.headers);
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, {
+    ...options,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers as Record<string, string> | undefined),
+    },
+  });
 
   if (res.status === 401 && typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("camron:logout"));
@@ -65,25 +56,20 @@ export type Camera = {
 };
 
 export async function getCameras(): Promise<Camera[]> {
-  const res = await fetch(`${BACKEND_URL}/api/cameras`, {
-    headers: authHeaders(),
-  });
+  const res = await authFetch(`${BACKEND_URL}/api/cameras`);
   return handleResponse<Camera[]>(res);
 }
 
 export async function createCamera(data: { name: string }): Promise<Camera> {
-  const res = await fetch(`${BACKEND_URL}/api/cameras`, {
+  const res = await authFetch(`${BACKEND_URL}/api/cameras`, {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify(data),
   });
   return handleResponse<Camera>(res);
 }
 
 export async function getCamera(id: string): Promise<Camera> {
-  const res = await fetch(`${BACKEND_URL}/api/cameras/${id}`, {
-    headers: authHeaders(),
-  });
+  const res = await authFetch(`${BACKEND_URL}/api/cameras/${id}`);
   return handleResponse<Camera>(res);
 }
 
@@ -91,18 +77,16 @@ export async function updateCamera(
   id: string,
   data: { name: string },
 ): Promise<Camera> {
-  const res = await fetch(`${BACKEND_URL}/api/cameras/${id}`, {
+  const res = await authFetch(`${BACKEND_URL}/api/cameras/${id}`, {
     method: "PUT",
-    headers: authHeaders(),
     body: JSON.stringify(data),
   });
   return handleResponse<Camera>(res);
 }
 
 export async function deleteCamera(id: string): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/api/cameras/${id}`, {
+  const res = await authFetch(`${BACKEND_URL}/api/cameras/${id}`, {
     method: "DELETE",
-    headers: authHeaders(),
   });
   if (res.status === 401) {
     if (typeof window !== "undefined") {
@@ -116,9 +100,8 @@ export async function deleteCamera(id: string): Promise<void> {
 export async function toggleFlash(
   id: string,
 ): Promise<{ ok: boolean; flash_active: boolean }> {
-  const res = await fetch(`${BACKEND_URL}/api/cameras/${id}/flash`, {
+  const res = await authFetch(`${BACKEND_URL}/api/cameras/${id}/flash`, {
     method: "POST",
-    headers: authHeaders(),
   });
   return handleResponse<{ ok: boolean; flash_active: boolean }>(res);
 }

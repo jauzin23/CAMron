@@ -2,6 +2,7 @@
 
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const { createTestDb, insertTestCamera } = require("./helpers/db");
 const { createTestApp } = require("./helpers/app");
 
@@ -11,6 +12,11 @@ let app;
 
 function makeAuthHeader() {
   return `Bearer ${jwt.sign({ role: "admin" }, process.env.JWT_SECRET, { expiresIn: "1h" })}`;
+}
+
+/** Generate a valid RFC 4122 v4 UUID for use in tests */
+function uuid() {
+  return crypto.randomUUID();
 }
 
 beforeEach(() => {
@@ -65,8 +71,9 @@ describe("POST /api/compile/initiate", () => {
   });
 
   it("rotates api_key when re-flashing an existing camera", async () => {
+    const camId = uuid();
     const oldApiKey = "m".repeat(64);
-    insertTestCamera(db, { id: "cam-reflash", api_key: oldApiKey, name: "Old ESP" });
+    insertTestCamera(db, { id: camId, api_key: oldApiKey, name: "Old ESP" });
 
     const res = await request(app)
       .post("/api/compile/initiate")
@@ -74,15 +81,15 @@ describe("POST /api/compile/initiate", () => {
       .send({
         wifi_ssid: "NewWifi",
         wifi_password: "newpass",
-        cameraId: "cam-reflash",
+        cameraId: camId,
       });
 
     expect(res.status).toBe(200);
-    expect(res.body.cameraId).toBe("cam-reflash");
+    expect(res.body.cameraId).toBe(camId);
 
     const updated = db
       .prepare("SELECT api_key FROM cameras WHERE id = ?")
-      .get("cam-reflash");
+      .get(camId);
     expect(updated.api_key).not.toBe(oldApiKey);
     expect(updated.api_key).toMatch(/^[0-9a-f]{64}$/);
   });
@@ -94,7 +101,7 @@ describe("POST /api/compile/initiate", () => {
       .send({
         wifi_ssid: "Test",
         wifi_password: "pass",
-        cameraId: "does-not-exist",
+        cameraId: uuid(),
       });
 
     expect(res.status).toBe(404);
@@ -137,31 +144,42 @@ describe("POST /api/compile/initiate", () => {
 });
 
 describe("GET /api/download/:cameraId/:filename", () => {
+  it("returns 400 for invalid (non-UUID) cameraId", async () => {
+    const res = await request(app)
+      .get("/api/download/not-a-uuid/firmware.bin")
+      .set("Authorization", makeAuthHeader());
+
+    expect(res.status).toBe(400);
+  });
+
   it("returns 400 for path traversal attempt (..)", async () => {
-    insertTestCamera(db, { id: "cam-dl", api_key: "n".repeat(64) });
+    const camId = uuid();
+    insertTestCamera(db, { id: camId, api_key: "n".repeat(64) });
 
     const res = await request(app)
-      .get("/api/download/cam-dl/../../etc/passwd")
+      .get(`/api/download/${camId}/../../etc/passwd`)
       .set("Authorization", makeAuthHeader());
 
     expect([400, 404]).toContain(res.status);
   });
 
   it("returns 400 for non-.bin file extension", async () => {
-    insertTestCamera(db, { id: "cam-dl2", api_key: "o".repeat(64) });
+    const camId = uuid();
+    insertTestCamera(db, { id: camId, api_key: "o".repeat(64) });
 
     const res = await request(app)
-      .get("/api/download/cam-dl2/script.sh")
+      .get(`/api/download/${camId}/script.sh`)
       .set("Authorization", makeAuthHeader());
 
     expect(res.status).toBe(400);
   });
 
   it("returns 404 when file does not exist but camera record exists", async () => {
-    insertTestCamera(db, { id: "cam-dl3", api_key: "p".repeat(64) });
+    const camId = uuid();
+    insertTestCamera(db, { id: camId, api_key: "p".repeat(64) });
 
     const res = await request(app)
-      .get("/api/download/cam-dl3/firmware.bin")
+      .get(`/api/download/${camId}/firmware.bin`)
       .set("Authorization", makeAuthHeader());
 
     expect(res.status).toBe(404);
@@ -169,23 +187,24 @@ describe("GET /api/download/:cameraId/:filename", () => {
 
   it("returns 404 when camera record does not exist", async () => {
     const res = await request(app)
-      .get("/api/download/nonexistent/firmware.bin")
+      .get(`/api/download/${uuid()}/firmware.bin`)
       .set("Authorization", makeAuthHeader());
 
     expect(res.status).toBe(404);
   });
 
   it("returns 401 without JWT", async () => {
-    const res = await request(app).get("/api/download/cam/firmware.bin");
+    const res = await request(app).get(`/api/download/${uuid()}/firmware.bin`);
     expect(res.status).toBe(401);
   });
 });
 
 describe("POST /api/confirm-flash (camera auth, no JWT)", () => {
-  const CAM_ID = "cam-confirm";
+  let CAM_ID;
   const CAM_API_KEY = "q".repeat(64);
 
   beforeEach(() => {
+    CAM_ID = uuid();
     insertTestCamera(db, { id: CAM_ID, api_key: CAM_API_KEY, name: "Flash ESP" });
   });
 
@@ -242,18 +261,27 @@ describe("POST /api/confirm-flash (camera auth, no JWT)", () => {
 
 describe("GET /api/confirm-status/:cameraId", () => {
   it("returns { confirmed: false } when flash not yet confirmed", async () => {
-    insertTestCamera(db, { id: "cam-status", api_key: "r".repeat(64) });
+    const camId = uuid();
+    insertTestCamera(db, { id: camId, api_key: "r".repeat(64) });
 
     const res = await request(app)
-      .get("/api/confirm-status/cam-status")
+      .get(`/api/confirm-status/${camId}`)
       .set("Authorization", makeAuthHeader());
 
     expect(res.status).toBe(200);
     expect(res.body.confirmed).toBe(false);
   });
 
+  it("returns 400 for invalid (non-UUID) cameraId", async () => {
+    const res = await request(app)
+      .get("/api/confirm-status/not-a-uuid")
+      .set("Authorization", makeAuthHeader());
+
+    expect(res.status).toBe(400);
+  });
+
   it("returns 401 without JWT", async () => {
-    const res = await request(app).get("/api/confirm-status/any");
+    const res = await request(app).get(`/api/confirm-status/${uuid()}`);
     expect(res.status).toBe(401);
   });
 });
@@ -261,15 +289,23 @@ describe("GET /api/confirm-status/:cameraId", () => {
 describe("POST /api/cleanup/:cameraId", () => {
   it("returns 200 when temp dir does not exist (idempotent)", async () => {
     const res = await request(app)
-      .post("/api/cleanup/some-nonexistent-camera")
+      .post(`/api/cleanup/${uuid()}`)
       .set("Authorization", makeAuthHeader());
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
 
+  it("returns 400 for invalid (non-UUID) cameraId", async () => {
+    const res = await request(app)
+      .post("/api/cleanup/not-a-uuid")
+      .set("Authorization", makeAuthHeader());
+
+    expect(res.status).toBe(400);
+  });
+
   it("returns 401 without JWT", async () => {
-    const res = await request(app).post("/api/cleanup/cam");
+    const res = await request(app).post(`/api/cleanup/${uuid()}`);
     expect(res.status).toBe(401);
   });
 });

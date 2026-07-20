@@ -29,9 +29,6 @@ if (fs.existsSync(rootEnvPath)) {
 
 const nextConfig = {
   output: "standalone",
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     unoptimized: true,
   },

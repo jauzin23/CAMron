@@ -87,12 +87,11 @@ export function AppHeader() {
   const [cameraCount, setCameraCount] = useState<number | null>(null);
 
   useEffect(() => {
-    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-    if (!sseToken) return;
 
     const eventSource = new EventSource(
-      `${backendUrl}/api/cameras/events?token=${encodeURIComponent(sseToken)}`,
+      `${backendUrl}/api/cameras/events`,
+      { withCredentials: true },
     );
 
     eventSource.onmessage = (event) => {

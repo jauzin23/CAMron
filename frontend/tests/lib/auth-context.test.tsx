@@ -5,10 +5,8 @@ import { AuthProvider, useAuth } from "../../lib/auth-context";
 
 vi.stubEnv("NEXT_PUBLIC_BACKEND_URL", "http://localhost:3000");
 
-const SESSION_KEY = "camron_jwt";
-
 function TestConsumer() {
-  const { token, isAuthenticated, isLoading, login, logout } = useAuth();
+  const { isAuthenticated, isLoading, login, logout } = useAuth();
   const [result, setResult] = React.useState<any>(null);
 
   const handleLogin = async (pin: string) => {
@@ -21,7 +19,6 @@ function TestConsumer() {
       <span data-testid="auth-state">
         {isLoading ? "loading" : isAuthenticated ? "authenticated" : "unauthenticated"}
       </span>
-      <span data-testid="token">{token ?? "no-token"}</span>
       <span data-testid="login-result">{result ? JSON.stringify(result) : "none"}</span>
       <button onClick={() => handleLogin("1234")} data-testid="login-success">
         Login Success
@@ -45,35 +42,22 @@ function renderWithProvider() {
 }
 
 beforeEach(() => {
-  sessionStorage.clear();
+  // Clear any cookies set by previous tests to prevent state leakage
+  document.cookie.split(";").forEach((c) => {
+    document.cookie = c
+      .replace(/^ +/, "")
+      .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
+  });
 });
 
 describe("AuthProvider & useAuth", () => {
-  it("finishes as unauthenticated if no token exists", async () => {
+  it("finishes as unauthenticated when verify returns 401 (no cookie)", async () => {
     renderWithProvider();
     await act(async () => {});
     expect(screen.getByTestId("auth-state").textContent).toBe("unauthenticated");
   });
 
-  it("checks token on mount and sets authenticated if token is valid", async () => {
-    sessionStorage.setItem(SESSION_KEY, "mock-jwt-token");
-    renderWithProvider();
-    await act(async () => {});
-
-    expect(screen.getByTestId("auth-state").textContent).toBe("authenticated");
-    expect(screen.getByTestId("token").textContent).toBe("mock-jwt-token");
-  });
-
-  it("checks token on mount and sets unauthenticated if token is invalid/verification fails", async () => {
-    sessionStorage.setItem(SESSION_KEY, "invalid-token");
-    renderWithProvider();
-    await act(async () => {});
-
-    expect(screen.getByTestId("auth-state").textContent).toBe("unauthenticated");
-    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
-  });
-
-  it("successful login updates state and saves token to sessionStorage", async () => {
+  it("successful login sets authenticated state", async () => {
     renderWithProvider();
     await act(async () => {});
 
@@ -86,7 +70,6 @@ describe("AuthProvider & useAuth", () => {
     const result = JSON.parse(screen.getByTestId("login-result").textContent!);
     expect(result).toEqual({ success: true });
     expect(screen.getByTestId("auth-state").textContent).toBe("authenticated");
-    expect(sessionStorage.getItem(SESSION_KEY)).toBe("mock-jwt-token");
   });
 
   it("failed login returns error and does not authenticate", async () => {
@@ -102,28 +85,37 @@ describe("AuthProvider & useAuth", () => {
     const result = JSON.parse(screen.getByTestId("login-result").textContent!);
     expect(result).toEqual({ success: false, error: "Incorrect PIN" });
     expect(screen.getByTestId("auth-state").textContent).toBe("unauthenticated");
-    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
   });
 
-  it("logout clears sessionStorage and sets unauthenticated", async () => {
-    sessionStorage.setItem(SESSION_KEY, "mock-jwt-token");
+  it("logout calls /api/auth/logout and sets unauthenticated", async () => {
     renderWithProvider();
     await act(async () => {});
 
-    const btn = screen.getByTestId("logout");
+    // First login
     await act(async () => {
-      fireEvent.click(btn);
+      fireEvent.click(screen.getByTestId("login-success"));
     });
+    await act(async () => {});
+    expect(screen.getByTestId("auth-state").textContent).toBe("authenticated");
+
+    // Then logout
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("logout"));
+    });
+    await act(async () => {});
 
     expect(screen.getByTestId("auth-state").textContent).toBe("unauthenticated");
-    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
   });
 
   it("reacts to global camron:logout event to force-logout", async () => {
-    sessionStorage.setItem(SESSION_KEY, "mock-jwt-token");
     renderWithProvider();
     await act(async () => {});
-    
+
+    // Login first
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("login-success"));
+    });
+    await act(async () => {});
     expect(screen.getByTestId("auth-state").textContent).toBe("authenticated");
 
     await act(async () => {
@@ -131,6 +123,5 @@ describe("AuthProvider & useAuth", () => {
     });
 
     expect(screen.getByTestId("auth-state").textContent).toBe("unauthenticated");
-    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
   });
 });

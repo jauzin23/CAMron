@@ -76,10 +76,10 @@ export default function ControlCenterPage() {
   useEffect(() => {
     void loadCameras(true);
 
-    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
     const eventSource = new EventSource(
-      `${backendUrl}/api/cameras/events?token=${encodeURIComponent(sseToken)}`,
+      `${backendUrl}/api/cameras/events`,
+      { withCredentials: true },
     );
 
     eventSource.onmessage = (event) => {

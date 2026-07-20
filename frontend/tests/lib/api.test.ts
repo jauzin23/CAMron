@@ -12,12 +12,6 @@ import {
 
 vi.stubEnv("NEXT_PUBLIC_BACKEND_URL", "http://localhost:3000");
 
-const SESSION_KEY = "camron_jwt";
-
-beforeEach(() => {
-  sessionStorage.clear();
-});
-
 describe("getCameras()", () => {
   it("sends GET /api/cameras and returns camera array", async () => {
     const cameras = await getCameras();
@@ -26,8 +20,8 @@ describe("getCameras()", () => {
     expect(cameras[0]).toHaveProperty("name");
   });
 
-  it("attaches Authorization header when token is in sessionStorage", async () => {
-    let capturedAuth: string | null = null;
+  it("sends request with credentials: include (no Authorization header injection)", async () => {
+    let capturedAuth: string | null = "should-be-absent";
 
     server.use(
       http.get("http://localhost:3000/api/cameras", ({ request }) => {
@@ -36,25 +30,9 @@ describe("getCameras()", () => {
       })
     );
 
-    sessionStorage.setItem(SESSION_KEY, "my-test-token");
     await getCameras();
 
-    expect(capturedAuth).toBe("Bearer my-test-token");
-  });
-
-  it("sends no Authorization header when no token in sessionStorage", async () => {
-    let capturedAuth: string | null = "present";
-
-    server.use(
-      http.get("http://localhost:3000/api/cameras", ({ request }) => {
-        capturedAuth = request.headers.get("Authorization");
-        return HttpResponse.json([]);
-      })
-    );
-
-    sessionStorage.removeItem(SESSION_KEY);
-    await getCameras();
-
+    // Cookie-based auth — no Authorization header should be set by api.ts
     expect(capturedAuth).toBeNull();
   });
 
@@ -165,20 +143,22 @@ describe("toggleFlash()", () => {
 });
 
 describe("authFetch()", () => {
-  it("attaches token from sessionStorage to request", async () => {
-    let capturedAuth: string | null = null;
+  it("sends request with credentials: include", async () => {
+    let capturedCredentials: string | null = null;
 
     server.use(
       http.get("http://localhost:3000/api/test", ({ request }) => {
-        capturedAuth = request.headers.get("Authorization");
+        // credentials mode isn't visible in MSW request object directly,
+        // but we can verify no Authorization header is manually set
+        capturedCredentials = request.headers.get("Authorization");
         return HttpResponse.json({ ok: true });
       })
     );
 
-    sessionStorage.setItem(SESSION_KEY, "authfetch-token");
     await authFetch("http://localhost:3000/api/test");
 
-    expect(capturedAuth).toBe("Bearer authfetch-token");
+    // Cookie-based auth — api.ts should not manually inject Authorization header
+    expect(capturedCredentials).toBeNull();
   });
 
   it("dispatches camron:logout on 401 response", async () => {

@@ -4,11 +4,20 @@ const express = require("express");
 const crypto = require("crypto");
 const net = require("net");
 const http = require("http");
+const rateLimit = require("express-rate-limit");
 
 const db = require("../db/connection");
 const cameraEmitter = require("../utils/emitter");
 
 const router = express.Router();
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many registration requests, please try again later." },
+});
 
 function generateApiKey() {
   return crypto.randomBytes(32).toString("hex");
@@ -225,7 +234,7 @@ router.delete("/:id", (req, res) => {
   }
 });
 
-router.post("/register", (req, res) => {
+router.post("/register", registerLimiter, (req, res) => {
   const { id, ip } = req.body;
   if (!id || !ip) {
     return res.status(400).json({ error: "Missing id or ip in body" });

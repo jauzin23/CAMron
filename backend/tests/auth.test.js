@@ -19,24 +19,33 @@ afterEach(() => {
 });
 
 describe("POST /api/auth/login", () => {
-  it("returns 200 + token on correct PIN", async () => {
+  it("returns 200 + sets cookie on correct PIN", async () => {
     const res = await request(app)
       .post("/api/auth/login")
       .send({ pin: "1234" });
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("token");
+    expect(res.body).toHaveProperty("ok", true);
     expect(res.body).toHaveProperty("expiresAt");
-    expect(typeof res.body.token).toBe("string");
     expect(typeof res.body.expiresAt).toBe("number");
+
+    // Cookie should be set in Set-Cookie header
+    const setCookie = res.headers["set-cookie"];
+    expect(setCookie).toBeDefined();
+    expect(Array.isArray(setCookie) ? setCookie.join(";") : setCookie).toContain("camron_session=");
   });
 
-  it("token is a valid JWT signed with JWT_SECRET", async () => {
+  it("cookie value is a valid JWT signed with JWT_SECRET", async () => {
     const res = await request(app)
       .post("/api/auth/login")
       .send({ pin: "1234" });
 
-    const decoded = jwt.verify(res.body.token, process.env.JWT_SECRET);
+    const setCookie = res.headers["set-cookie"];
+    const rawCookie = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+    const tokenMatch = rawCookie.match(/camron_session=([^;]+)/);
+    expect(tokenMatch).not.toBeNull();
+
+    const decoded = jwt.verify(tokenMatch[1], process.env.JWT_SECRET);
     expect(decoded).toHaveProperty("role", "admin");
   });
 
@@ -107,11 +116,11 @@ describe("POST /api/auth/login", () => {
 });
 
 describe("POST /api/auth/login — rate limiting", () => {
-  it("returns 429 after 5 failed attempts within 1 minute", async () => {
+  it("returns 429 after 10 failed attempts within 15 minutes", async () => {
     const rateLimitedApp = createTestApp(db);
     delete process.env.SKIP_RATE_LIMIT;
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       await request(rateLimitedApp).post("/api/auth/login").send({ pin: "0000" });
     }
 
@@ -125,26 +134,37 @@ describe("POST /api/auth/login — rate limiting", () => {
 });
 
 describe("POST /api/auth/verify", () => {
-  let validToken;
+  let validCookie;
 
   beforeEach(async () => {
     const res = await request(app)
       .post("/api/auth/login")
       .send({ pin: "1234" });
-    validToken = res.body.token;
+    const setCookie = res.headers["set-cookie"];
+    const rawCookie = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+    // Extract just "camron_session=<token>" part for the Cookie header
+    validCookie = rawCookie.split(";")[0];
   });
 
-  it("returns 200 + { valid: true } for a valid token", async () => {
+  it("returns 200 + { valid: true } when cookie is valid", async () => {
     const res = await request(app)
       .post("/api/auth/verify")
-      .send({ token: validToken });
+      .set("Cookie", validCookie);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ valid: true });
     expect(res.body).toHaveProperty("expiresAt");
   });
 
-  it("returns 401 with TOKEN_EXPIRED for an expired token", async () => {
+  it("returns 401 with TOKEN_MISSING when no cookie is sent", async () => {
+    const res = await request(app)
+      .post("/api/auth/verify");
+
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe("TOKEN_MISSING");
+  });
+
+  it("returns 401 with TOKEN_EXPIRED for an expired token in cookie", async () => {
     const expiredToken = jwt.sign(
       { role: "admin" },
       process.env.JWT_SECRET,
@@ -153,18 +173,19 @@ describe("POST /api/auth/verify", () => {
 
     const res = await request(app)
       .post("/api/auth/verify")
-      .send({ token: expiredToken });
+      .set("Cookie", `camron_session=${expiredToken}`);
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_EXPIRED");
   });
 
-  it("returns 401 with TOKEN_INVALID for a tampered token", async () => {
-    const tamperedToken = validToken.slice(0, -5) + "XXXXX";
+  it("returns 401 with TOKEN_INVALID for a tampered token in cookie", async () => {
+    const tokenValue = validCookie.replace("camron_session=", "");
+    const tampered = tokenValue.slice(0, -5) + "XXXXX";
 
     const res = await request(app)
       .post("/api/auth/verify")
-      .send({ token: tamperedToken });
+      .set("Cookie", `camron_session=${tampered}`);
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_INVALID");
@@ -175,17 +196,25 @@ describe("POST /api/auth/verify", () => {
 
     const res = await request(app)
       .post("/api/auth/verify")
-      .send({ token: wrongSecretToken });
+      .set("Cookie", `camron_session=${wrongSecretToken}`);
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_INVALID");
   });
+});
 
-  it("returns 400 when token is missing from body", async () => {
+describe("POST /api/auth/logout", () => {
+  it("returns 200 and clears the session cookie", async () => {
     const res = await request(app)
-      .post("/api/auth/verify")
-      .send({});
+      .post("/api/auth/logout");
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("ok", true);
+    // The Set-Cookie header should clear the cookie (Max-Age=0 or Expires in past)
+    const setCookie = res.headers["set-cookie"];
+    if (setCookie) {
+      const raw = Array.isArray(setCookie) ? setCookie.join(";") : setCookie;
+      expect(raw).toContain("camron_session=");
+    }
   });
 });

@@ -4,6 +4,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
 const { initSchema } = require("./db/schema");
 const camerasRouter = require("./routes/cameras");
@@ -12,8 +13,6 @@ const flashRouter = require("./routes/flash");
 const authRouter = require("./routes/auth");
 const path = require("path");
 const fs = require("fs");
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./docs/swagger");
 const { verifySessionJWT } = require("./middleware/auth");
 
 const app = express();
@@ -49,10 +48,18 @@ if (fs.existsSync(tempDirRoot)) {
 }
 fs.mkdirSync(tempDirRoot, { recursive: true });
 
-app.use(cors());
+const allowedOrigin = process.env.ALLOWED_ORIGIN || "http://localhost:3005";
+app.use(
+  cors({
+    origin: allowedOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
+app.use(cookieParser());
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/auth", authRouter);
 app.get("/health", (_req, res) => res.status(200).json({ ok: true }));
 

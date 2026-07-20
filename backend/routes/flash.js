@@ -6,16 +6,28 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const rateLimit = require("express-rate-limit");
 
 const db = require("../db/connection");
 const cameraEmitter = require("../utils/emitter");
 const router = express.Router();
 
-const ARDUINO_CLI_PATH =
-  process.env.ARDUINO_CLI_PATH ||
-  (process.platform === "win32"
-    ? "C:\\Users\\jaamj\\AppData\\Local\\Programs\\Arduino IDE\\resources\\app\\lib\\backend\\resources\\arduino-cli.exe"
-    : "arduino-cli");
+// arduino-cli is resolved from ARDUINO_CLI_PATH env var, or falls back to
+// the system PATH command name (works in Docker and Linux installs).
+const ARDUINO_CLI_PATH = process.env.ARDUINO_CLI_PATH || "arduino-cli";
+
+const confirmFlashLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." },
+});
+
+/** Validates that a string is a standard UUID (v4 format) */
+function isValidUUID(id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
 
 const compilations = {};
 const confirmations = {};
@@ -80,6 +92,10 @@ router.post("/compile/initiate", (req, res) => {
       .json({ error: "WiFi SSID and Password are required." });
   }
 
+  if (cameraId && !isValidUUID(cameraId)) {
+    return res.status(400).json({ error: "Invalid camera ID format." });
+  }
+
   let finalCameraId = cameraId;
   let finalApiKey = null;
   let finalName = name || "ESP32-CAM";
@@ -139,6 +155,11 @@ router.post("/compile/initiate", (req, res) => {
 
 router.get("/compile/stream/:cameraId", (req, res) => {
   const { cameraId } = req.params;
+
+  if (!isValidUUID(cameraId)) {
+    return res.status(400).json({ error: "Invalid camera ID format." });
+  }
+
   const compilation = compilations[cameraId];
 
   if (!compilation) {
@@ -300,6 +321,10 @@ router.get("/compile/stream/:cameraId", (req, res) => {
 router.get("/download/:cameraId/:filename", (req, res) => {
   const { cameraId, filename } = req.params;
 
+  if (!isValidUUID(cameraId)) {
+    return res.status(400).json({ error: "Invalid camera ID format." });
+  }
+
   if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
     return res.status(400).json({ error: "Invalid filename." });
   }
@@ -336,13 +361,13 @@ router.get("/download/:cameraId/:filename", (req, res) => {
   }
 });
 
-router.post("/confirm-flash", (req, res) => {
+router.post("/confirm-flash", confirmFlashLimiter, (req, res) => {
   const { id } = req.body;
   const authHeader = req.headers["authorization"] || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-  if (!id) {
-    return res.status(400).json({ error: "Camera ID is missing" });
+  if (!id || !isValidUUID(id)) {
+    return res.status(400).json({ error: "Invalid or missing camera ID format." });
   }
 
   let finalApiKey = null;
@@ -394,6 +419,10 @@ router.post("/confirm-flash", (req, res) => {
 
 router.get("/confirm-status/:cameraId/events", (req, res) => {
   const { cameraId } = req.params;
+
+  if (!isValidUUID(cameraId)) {
+    return res.status(400).json({ error: "Invalid camera ID format." });
+  }
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -449,6 +478,10 @@ router.get("/confirm-status/:cameraId/events", (req, res) => {
 
 router.get("/confirm-status/:cameraId", (req, res) => {
   const { cameraId } = req.params;
+
+  if (!isValidUUID(cameraId)) {
+    return res.status(400).json({ error: "Invalid camera ID format." });
+  }
   const confirmation = confirmations[cameraId];
 
   if (confirmation) {
@@ -483,6 +516,10 @@ router.get("/confirm-status/:cameraId", (req, res) => {
 
 router.post("/cleanup/:cameraId", (req, res) => {
   const { cameraId } = req.params;
+
+  if (!isValidUUID(cameraId)) {
+    return res.status(400).json({ error: "Invalid camera ID format." });
+  }
   const targetDir = path.join(tempDirRoot, `temp_${cameraId}`);
   try {
     if (fs.existsSync(targetDir)) {

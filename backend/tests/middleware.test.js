@@ -23,7 +23,16 @@ afterEach(() => {
 });
 
 describe("verifySessionJWT middleware", () => {
-  it("allows request with valid Bearer token in Authorization header", async () => {
+  it("allows request with valid token in camron_session cookie", async () => {
+    const token = makeValidToken();
+    const res = await request(app)
+      .get("/api/cameras")
+      .set("Cookie", `camron_session=${token}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it("allows request with valid Bearer token in Authorization header (fallback)", async () => {
     const token = makeValidToken();
     const res = await request(app)
       .get("/api/cameras")
@@ -32,22 +41,25 @@ describe("verifySessionJWT middleware", () => {
     expect(res.status).toBe(200);
   });
 
-  it("allows request with valid token as ?token= query param", async () => {
-    const token = makeValidToken();
+  it("cookie takes priority over Authorization header", async () => {
+    const validToken = makeValidToken();
+    // Use a bad Authorization header but a valid cookie — should succeed
     const res = await request(app)
-      .get(`/api/cameras?token=${token}`);
+      .get("/api/cameras")
+      .set("Cookie", `camron_session=${validToken}`)
+      .set("Authorization", "Bearer bad-token");
 
     expect(res.status).toBe(200);
   });
 
-  it("returns 401 TOKEN_MISSING when no token is provided", async () => {
+  it("returns 401 TOKEN_MISSING when no token is provided at all", async () => {
     const res = await request(app).get("/api/cameras");
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_MISSING");
   });
 
-  it("returns 401 TOKEN_EXPIRED for an expired token", async () => {
+  it("returns 401 TOKEN_EXPIRED for an expired token in cookie", async () => {
     const expiredToken = jwt.sign(
       { role: "admin" },
       process.env.JWT_SECRET,
@@ -56,19 +68,19 @@ describe("verifySessionJWT middleware", () => {
 
     const res = await request(app)
       .get("/api/cameras")
-      .set("Authorization", `Bearer ${expiredToken}`);
+      .set("Cookie", `camron_session=${expiredToken}`);
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_EXPIRED");
   });
 
-  it("returns 401 TOKEN_INVALID for a tampered token", async () => {
+  it("returns 401 TOKEN_INVALID for a tampered token in cookie", async () => {
     const token = makeValidToken();
     const tampered = token.slice(0, -5) + "ZZZZZ";
 
     const res = await request(app)
       .get("/api/cameras")
-      .set("Authorization", `Bearer ${tampered}`);
+      .set("Cookie", `camron_session=${tampered}`);
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_INVALID");
@@ -79,7 +91,7 @@ describe("verifySessionJWT middleware", () => {
 
     const res = await request(app)
       .get("/api/cameras")
-      .set("Authorization", `Bearer ${wrongToken}`);
+      .set("Cookie", `camron_session=${wrongToken}`);
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_INVALID");
@@ -92,6 +104,16 @@ describe("verifySessionJWT middleware", () => {
       .get("/api/cameras")
       .set("Authorization", token);
 
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe("TOKEN_MISSING");
+  });
+
+  it("rejects ?token= query parameter (intentionally removed)", async () => {
+    const token = makeValidToken();
+    const res = await request(app)
+      .get(`/api/cameras?token=${token}`);
+
+    // No cookie or Authorization header — must reject
     expect(res.status).toBe(401);
     expect(res.body.code).toBe("TOKEN_MISSING");
   });

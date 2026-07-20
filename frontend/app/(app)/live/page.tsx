@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/page-header";
 import {
   Loader2,
@@ -271,10 +270,10 @@ export default function LivePage() {
   const availableCameras: Camera[] = realCameras;
 
   useEffect(() => {
-    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
     const eventSource = new EventSource(
-      `${backendUrl}/api/cameras/events?token=${encodeURIComponent(sseToken)}`,
+      `${backendUrl}/api/cameras/events`,
+      { withCredentials: true },
     );
 
     eventSource.onmessage = (event) => {
@@ -614,7 +613,6 @@ function CameraCell({
   filterStyle,
   onToggleFlash,
 }: CameraCellProps) {
-  const { getToken } = useAuth();
   const { t, language } = useLanguage();
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -857,7 +855,7 @@ function CameraCell({
           </div>
         ) : (
           <img
-            src={`${BACKEND_URL}/stream?id=${camera.id}&token=${getToken()}&r=${retryCount}`}
+            src={`${BACKEND_URL}/stream?id=${camera.id}&r=${retryCount}`}
             alt={camera.name}
             className={`w-full h-full object-contain transition-opacity duration-300 ease-out ${
               isLive ? "opacity-100" : "opacity-0"

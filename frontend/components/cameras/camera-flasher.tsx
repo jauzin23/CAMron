@@ -405,9 +405,9 @@ export function CameraFlasher({
       const { cameraId: generatedId } = await response.json();
       setCameraId(generatedId);
 
-      const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
       const eventSource = new EventSource(
-        `${BACKEND_URL}/api/compile/stream/${generatedId}?token=${encodeURIComponent(sseToken)}`,
+        `${BACKEND_URL}/api/compile/stream/${generatedId}`,
+        { withCredentials: true },
       );
 
       eventSource.addEventListener("complete", (event: any) => {
@@ -581,9 +581,9 @@ export function CameraFlasher({
       eventSourceRef.current.close();
     }
 
-    const sseToken = sessionStorage.getItem("camron_jwt") ?? "";
     const eventSource = new EventSource(
-      `${BACKEND_URL}/api/confirm-status/${targetCameraId}/events?token=${encodeURIComponent(sseToken)}`,
+      `${BACKEND_URL}/api/confirm-status/${targetCameraId}/events`,
+      { withCredentials: true },
     );
     eventSourceRef.current = eventSource;
 
